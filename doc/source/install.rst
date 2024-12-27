@@ -39,19 +39,33 @@ Using pip can easy install the release version (serial) of QEpy from `PyPI <http
 Source
 ------
     
-You can download the ``QEpy`` source file from `gitlab <https://gitlab.com/shaoxc/qepy>`__.
+1. Install the QE
+^^^^^^^^^^^^^^^^^
+
+   The ``QE`` should be compiled before ``QEpy`` with the ``-fPIC`` (position-independent code) compiler
+   option. Add ``-fPIC`` to the configuration options. E.g.,
+
+   .. code:: shell
+
+      ./configure CFLAGS=-fPIC FFLAGS=-fPIC
+
+   Then,
+
+   .. code:: shell
+
+      make all
+      export qedir=`pwd`
+
+2. Install the QEpy
+^^^^^^^^^^^^^^^^^^^
+
+   You can download the ``QEpy`` source file from `gitlab <https://gitlab.com/shaoxc/qepy>`__.
 
    .. code:: shell
 
       git clone --recurse-submodules https://gitlab.com/shaoxc/qepy.git
       python -m pip install ./qepy
    
-or with all features:
-
-   .. code:: shell
-
-      tddft=yes python -m pip install ./qepy
-
 
 Example on Ubuntu 22.04
 +++++++++++++++++++++++
@@ -89,22 +103,11 @@ Tips
 
    -  “``tddft=yes``” support real-time TDDFT by using `ce-tddft <https://github.com/dceresoli/ce-tddft>`__.
 
-Install the QE
---------------
-
-   The ``QE`` should be compiled before ``QEpy`` with the ``-fPIC`` (position-independent code) compiler
-   option. Add ``-fPIC`` to the configuration options. E.g.,
-
    .. code:: shell
 
-      ./configure CFLAGS=-fPIC FFLAGS=-fPIC
+      tddft=yes python -m pip install ./qepy
 
-   Then,
 
-   .. code:: shell
-
-      make all
-      export qedir=`pwd`
 
 More examples for QE
 --------------------
