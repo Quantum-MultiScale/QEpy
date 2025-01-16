@@ -11,17 +11,22 @@ variables:
   QEDIR: '/usr/src/app/q-e/'
   PUBLIC: 'package'
 
+.build_rules: &build_rules
+  rules:
+    - if: $CI_COMMIT_BRANCH == "github"
+      when: never
+    - if: $CI_COMMIT_BRANCH == "action"
+      when: never
+    - if: $CI_PIPELINE_SOURCE == "push"
+      changes:
+        - "*.md"
+        - "doc/**/*"
+    - when: always
+  image: $CONTAINER_IMAGE:$QTAG
 
 build:
   stage: build
-  except:
-    refs:
-      - github
-      - action
-    changes:
-      - "*.md"
-      - "doc/**/*"
-  image: $CONTAINER_IMAGE:$QTAG
+  <<: *build_rules
   script:
    - git submodule update --init --recursive
    - qedir=$QEDIR tddft=yes python -m pip install .
@@ -39,14 +44,7 @@ build:
 
 test:
   stage: test
-  except:
-    refs:
-      - github
-      - action
-    changes:
-      - "*.md"
-      - "doc/**/*"
-  image: $CONTAINER_IMAGE:$QTAG
+  <<: *build_rules
   script:
    - cp -r $PUBLIC/* $PACKAGE
    - cd examples/test
@@ -54,14 +52,7 @@ test:
 
 test-mpi:
   stage: test
-  except:
-    refs:
-      - github
-      - action
-    changes:
-      - "*.md"
-      - "doc/**/*"
-  image: $CONTAINER_IMAGE:$QTAG
+  <<: *build_rules
   script:
    - cp -r $PUBLIC/* $PACKAGE
    - cd examples/test
