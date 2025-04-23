@@ -3,7 +3,7 @@ from copy import deepcopy
 from qepy.driver import Driver
 from qepy_modules import constants
 from qepy.io import QEInput
-from ase.calculators.calculator import Calculator
+from ase.calculators.calculator import Calculator, all_changes
 from ase.units import create_units
 from ase.geometry import wrap_positions
 import ase.io
@@ -176,6 +176,23 @@ class QEpyCalculator(Calculator):
         self.driver = Driver(self.inputfile, **self.qepy_options)
         self.lstart = True
 
+    def calculate(self, atoms=None,
+                  properties=('energy', 'forces', 'stress'),
+                  system_changes=all_changes):
+
+        # 1) Let the base class handle bookkeeping / change‑checks
+        Calculator.calculate(self, atoms, properties, system_changes)
+
+        # 2) Evaluate the requested properties and cache them
+        if 'energy' in properties:
+            self.results['energy'] = self.get_potential_energy(self.atoms)
+
+        if 'forces' in properties:
+            self.results['forces'] = self.get_forces(self.atoms)
+
+        if 'stress' in properties:
+            self.results['stress'] = self.get_stress(self.atoms)
+
     def update_atoms(self, atoms = None, **kwargs):
         atoms = atoms or self.atoms
         #
@@ -259,7 +276,9 @@ class QEpyCalculator(Calculator):
     def get_potential_energy(self, atoms = None, **kwargs):
         """See :func:`qepy.driver.Driver.get_potential_energy`"""
         self.update_optimizer(atoms)
-        return self.driver.get_energy(**kwargs) * units['Ry']
+        #return self.driver.get_energy(**kwargs) * units['Ry']
+        self.results['energy'] = self.driver.get_energy(**kwargs) * units['Ry']
+        return self.results['energy']	
 
     def get_forces(self, atoms = None, icalc = 0):
         """See :func:`qepy.driver.Driver.get_forces`"""
