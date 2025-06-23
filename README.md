@@ -46,4 +46,4 @@ python -m pip install qepy
 	 ```
 
 ## Manual and Tutorials
-  See [QEpy's website](http://qepy.rutgers.edu) for details.
+  See [QEpy's website](https://qepy.rutgers.edu) for details.
