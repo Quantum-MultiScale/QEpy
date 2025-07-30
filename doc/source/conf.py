@@ -52,7 +52,9 @@ html_theme_options = {
 
 latex_show_urls = 'inline'
 latex_show_pagerefs = True
-latex_documents = [('index', not True)]
+latex_engine = 'xelatex'
+latex_documents = [('index', 'QEpy.tex', 'QEpy', 'QEpy-Developers', 'howto', not True)]
+
 
 smartquotes = False
 
