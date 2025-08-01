@@ -8,16 +8,12 @@ QEpy Developers
 Feel free to contact the developers:
  - `Xuecheng Shao <https://shaoxc.com>`_
  - `Michele Pavanello <https://sasn.rutgers.edu/about-us/faculty-staff/michele-pavanello>`_
+ - `Aniket Mandal <https://sites.rutgers.edu/prg/people/aniket-mandal/>`_
 
-On-line
-=======
-
-To find out more about the `Pavanello Research Group <http://sites.rutgers.edu/prg>`_. Or simply send us an email.
-
-GitLab
+GitHub
 ======
 
-Feel free to create new issues, merge requests or fork your own `QEpy` on our gitlab page: https://gitlab.com/shaoxc/qepy
+Feel free to create new issues, merge requests or fork your own `QEpy` on our GitHub page: https://github.com/Quantum-MultiScale/QEpy
 
 Make sure to let us know about your developments!
 

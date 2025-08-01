@@ -59,12 +59,12 @@ Source
 2. Install the QEpy
 ^^^^^^^^^^^^^^^^^^^
 
-   You can download the ``QEpy`` source file from `gitlab <https://gitlab.com/shaoxc/qepy>`__.
+   You can download the ``QEpy`` source file from `github <git@github.com:Quantum-MultiScale/QEpy.git>`__.
 
    .. code:: shell
 
-      git clone --recurse-submodules https://gitlab.com/shaoxc/qepy.git
-      python -m pip install ./qepy
+      git clone --recurse-submodules git@github.com:Quantum-MultiScale/QEpy.git
+      python -m pip install ./QEpy
    
 
 Example on Ubuntu 22.04
@@ -81,8 +81,8 @@ Example on Ubuntu 22.04
 	  make all -j 8
 	  make all -j 8
 	  cd ..
-	  git clone --recurse-submodules https://gitlab.com/shaoxc/qepy.git
-	  qedir=`pwd`/q-e/ python3 -m pip install -U ./qepy
+	  git clone --recurse-submodules git@github.com:Quantum-MultiScale/QEpy.git
+	  qedir=`pwd`/q-e/ python3 -m pip install -U ./QEpy
 
 
 Tips
@@ -105,7 +105,7 @@ Tips
 
    .. code:: shell
 
-      tddft=yes python -m pip install ./qepy
+      tddft=yes python -m pip install ./QEpy
 
 
 
@@ -128,3 +128,5 @@ More examples for QE
 .. note::
 
     Because ``QEpy`` still under active development, non-backward-compatible changes can happen at any time. Please, clone the lastest release often.
+
+

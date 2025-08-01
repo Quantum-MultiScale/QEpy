@@ -17,4 +17,7 @@ Commands
 Jupyter notebooks
 =================
 
-Available on `Gitlab <https://gitlab.com/shaoxc/qepy/-/tree/master/examples/jupyter>`_.
+Available on `GitHub <https://github.com/Quantum-MultiScale/QEpy/tree/dev/examples/jupyter>`_.
+
+
+
