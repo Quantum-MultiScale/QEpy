@@ -4,24 +4,33 @@
 QEpy - Quantum ESPRESSO in Python
 =================================
 
-QEpy_ turns `Quantum ESPRESSO (QE) <https://www.quantum-espresso.org/>`_ into a Python DFT engine for nonstandard workflows.
+QEpy_ turns `Quantum ESPRESSO (QE) <https://www.quantum-espresso.org/>`_ into a Python DFT engine for nonstandard workflows. QEpy_ allows the user to include external potentials, use custom xc functionals, and much much more.
 
 Contributors and funding
 ========================
 
- - Main author: `Xuecheng Shao  <https://sites.rutgers.edu/prg/people/xuecheng-shao/>`_ (Rutgers)
- - Oliviero Andreussi (UNT), Davide Ceresoli (CNR, Italy), Matthew Truscott (UNT), Andrew Baczewski (Sandia), Quinn Campbell (Sandia), `Michele Pavanello <https://sasn.rutgers.edu/about-us/faculty-staff/michele-pavanello>`_ (Rutgers).
- - `The Quantum-Multiscale collaboration <http://www.quantum-multiscale.org/>`_.
+ - Main author: `Xuecheng Shao  <https://www.shaoxc.com/>`_ (former PRG_ member, now at Jilin University)
+ - Aniket Mandal (Rutgers), Oliviero Andreussi (Boise State), Davide Ceresoli (CNR, Italy), Andrew Baczewski (Sandia), Quinn Campbell (Sandia), `Michele Pavanello <https://sasn.rutgers.edu/about-us/faculty-staff/michele-pavanello>`_ (Rutgers).
+ - `The Quantum MultiScale collaboration <http://www.quantum-multiscale.org/>`_.
 
 
 Thanks to ...
 =============
  - The Quantum ESPRESSO developers for the QE codebase
- - NSF for funding the Quantum-Multiscale collaboration
+ - NSF for funding the Quantum MultiScale collaboration
 
 What's in this code?
 ====================
-Small modifications to QE routines and a quick compilation with Python wrappers. QEpy_ is kept up to date with the latest QE stable release.
+Minor modifications to QE routines (e.g., electrons.f90) and a compilation with Python wrappers. QEpy_ is kept up to date with the latest QE stable release.
+
+
+If you like QEpy_ then ...
+==========================
+
+...you likely also would like to play around with DFTpy_
+
+Contents
+========
 
 .. toctree::
    :maxdepth: 2
@@ -30,10 +39,9 @@ Small modifications to QE routines and a quick compilation with Python wrappers.
    install
    tutorials/tutorials
    qepy/qepy
-   development/development
    faq
 
-.. _QEpy: https://gitlab.com/shaoxc/qepy
+.. _QEpy: https://github.com/Quantum-MultiScale/QEpy
 .. _Python: https://www.python.org
 .. _DFTpy: http://dftpy.rutgers.edu
 .. _PRG: https://sites.rutgers.edu/prg
