@@ -600,9 +600,10 @@ class Driver(metaclass=QEpyLibs):
             self.qepy_pw.basis.set_starting_wfc(starting_wfc)
             self.qepy_pw.wfcinit()
 
-    def create_array(self, gather = True, kind = 'rho'):
+    def create_array(self, gather = True, kind = 'rho', out = None):
         """Returns an empty array in real space.
         Nota bene: this is for real-space arrays like the density (rho) and potentials."""
+        if out is not None: return out
         if kind == 'rho' :
             nspin = self.qepy_pw.lsda_mod.get_nspin()
             if gather and self.nproc > 1 :
@@ -666,7 +667,7 @@ class Driver(metaclass=QEpyLibs):
     def set_density(self, density, gather = True, **kwargs):
         """Set density array in real space."""
         #
-        if density is None : density = np.zeros((1, 1))
+        density = self.create_array(gather=gather, kind='rho', out=density)
         if density.ndim != 2 : raise ValueError("The array should be 2-d.")
         #
         if gather and self.nproc > 1 :
@@ -705,7 +706,7 @@ class Driver(metaclass=QEpyLibs):
         else :
             self.embed.extene = 0.0
         #
-        if potential is None : potential = np.zeros((1, 1))
+        potential = self.create_array(gather=gather, kind='rho', out=potential)
         if potential.ndim != 2 : raise ValueError("The array should be 2-d.")
         #
         if gather and self.nproc > 1 :
