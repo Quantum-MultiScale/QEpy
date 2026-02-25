@@ -21,6 +21,7 @@
  },
  "integer" : {
 	 ""         : "int",
+	 "c_int"    : "int",
 	 "bit_32"   : "int",
 	 "bit_64"   : "long_long",
 	 "8"        : "long_long",

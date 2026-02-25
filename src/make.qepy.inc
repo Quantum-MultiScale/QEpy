@@ -121,7 +121,7 @@ build : ${PNAME} $(QEPY_OBJS_NEW)
 	${F2PY} -m lib${PNAME} ${F90WRAP_FILES} $(QEPY_OBJS_NEW) $(LIB_OBJS) $(QEPY_LIBS) ${QELIBS}
 else
 lib${PNAME}module.c : ${PNAME}
-	@${PYTHON} -m f90wrap --f2py-f90wrap -m lib${PNAME} ${F90WRAP_FILES} --lower
+	@${PYTHON} -m f90wrap --f2py-f90wrap -m lib${PNAME} ${F90WRAP_FILES} --lower --quiet
 
 meson.build : lib${PNAME}module.c meson.clean
 	@cp ../meson.build .

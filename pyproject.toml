@@ -1,10 +1,11 @@
 [build-system]
 requires = [
 	'meson>=1.4.0',
-	'ninja>=1.8.2',
+	'ninja>=1.8.2, !=1.13.0',
 	'wheel',
-	'f90wrap>=0.2.14',
-	'oldest-supported-numpy; python_version>="3.8"',
+	'f90wrap<=0.2.16', # 0.3.0 has the 'only' problem
+	'oldest-supported-numpy; python_version=="3.8"',
+	"numpy>=2.0.0; python_version>='3.9'",
 	'setuptools>=61.0',
 	#"meson-python>=0.13.0",
 	#'f90wrap@git+https://github.com/jameskermode/f90wrap',
@@ -26,8 +27,9 @@ maintainers = [
 ]
 requires-python = ">=3.8"
 dependencies = [
-	'f90wrap>=0.2.14',
-	'numpy<2.0',
+	'f90wrap<=0.2.16',
+	'numpy<2.0.0; python_version=="3.8"',
+	"numpy>=2.0.0; python_version>='3.9'",
 ]
 readme = "README.md"
 classifiers = [

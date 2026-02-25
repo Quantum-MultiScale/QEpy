@@ -1,7 +1,7 @@
 project('qepy',
   ['c', 'fortran'],
   version : '7.2.0',
-  meson_version: '>= 1.1.0',
+  meson_version: '>= 1.4.0',
   default_options : [
     'warning_level=1',
     'buildtype=release'
@@ -58,8 +58,17 @@ elif ff.get_id() in ['intel-cl', 'intel-llvm-cl']
 endif
 add_project_arguments(_intel_cflags, language: ['c', 'cpp'])
 add_project_arguments(_intel_fflags, language: 'fortran')
-##<-- 
+##<-- END scipy
 add_project_arguments('-fPIC', language: 'fortran')
+if ff.get_id() in ['intel', 'intel-llvm'] # ifort deprecation warning
+  add_project_arguments('-diag-disable=10448', language: 'fortran')
+endif
+if cc.has_argument('-Wno-typedef-redefinition')
+  add_project_arguments('-Wno-typedef-redefinition', language : ['c', 'cpp'])
+endif
+if cc.has_argument('-Wunused-variable')
+  add_project_arguments('-Wunused-variable', language : ['c', 'cpp'])
+endif
 
 ##--> update variables
 qedir = get_option('qedir')

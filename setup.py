@@ -75,7 +75,7 @@ class MakeBuild(build_ext):
 
         res = subprocess.run('make all ' + build_args, cwd=self.build_temp, env = env, shell=True, capture_output=True, text=True)
         if res.returncode > 0 :
-            print("stdout:", res.stdout[-10000:], flush=True)
+            print("stdout:", res.stdout, flush=True)
             print("stderr:", res.stderr, flush=True)
             raise RuntimeError('QEpy installation failed.')
 
