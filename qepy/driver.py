@@ -1,3 +1,4 @@
+import csv
 import numpy as np
 import tempfile
 from functools import wraps
@@ -1189,3 +1190,104 @@ class Driver(metaclass=QEpyLibs):
     @classmethod
     def stressname2type(cls, name = None):
         return cls.name2type(cls.STRESSNAMES, name)
+
+    @staticmethod
+    def compute_pes(scan_values, compute_energy, scan_label="x", save_csv=None):
+        """Compute a potential-energy surface along an arbitrary coordinate.
+
+        This is a general-purpose scanner that evaluates an energy function
+        at each point along a 1-D coordinate grid.  The physics (SCF method,
+        XC functional, geometry update, etc.) are entirely defined by the
+        *compute_energy* callback.
+
+        Parameters
+        ----------
+        scan_values : array_like
+            1-D array of scan-parameter values (e.g. distances in Angstrom).
+        compute_energy : callable
+            Called as ``compute_energy(value)`` for each element of
+            *scan_values*.  Must return **one** of:
+
+            * ``float`` -- a single energy.  Stored under the key
+              ``"energy"`` in the results dict.
+            * ``dict[str, float]`` -- multiple labelled energies
+              (e.g. ``{"PBE": -31.4, "RVV10": -31.5}``).
+        scan_label : str, optional
+            Human-readable label for the scan coordinate (used in
+            screen output and CSV header).  Default ``"x"``.
+        save_csv : str or None, optional
+            Path to write a CSV file with the results.  ``None`` (default)
+            skips writing.
+
+        Returns
+        -------
+        scan_values : np.ndarray
+            The scan grid (as a NumPy array).
+        energies : dict[str, np.ndarray]
+            ``{label: energy_array}`` with one entry per label returned
+            by *compute_energy*.
+
+        Examples
+        --------
+        Single energy per point (plain QEpy SCF)::
+
+            def calc(d):
+                opts = update_geometry(qe_options, d)
+                drv = Driver(qe_options=opts, iterative=False, logfile=f'd_{d:.2f}.out')
+                E = drv.get_energy()
+                drv.stop()
+                return E
+
+            grid, energies = Driver.compute_pes(
+                np.linspace(2.8, 5.0, 20), calc, scan_label="d (A)")
+
+        Multiple energies per point (e.g. different XC mixes)::
+
+            def calc(d):
+                opts = update_geometry(qe_options, d)
+                return {"PBE": run_scf(opts, "PBE"),
+                        "RVV10": run_scf(opts, "RVV10")}
+
+            grid, energies = Driver.compute_pes(
+                np.linspace(2.8, 5.0, 20), calc, scan_label="d (A)",
+                save_csv="pes.csv")
+        """
+        scan_values = np.asarray(scan_values, dtype=float)
+        n_points = len(scan_values)
+
+        print(f"PES scan: {n_points} points along {scan_label}")
+        print("=" * 60)
+
+        energies = None
+        labels = None
+
+        for i, val in enumerate(scan_values):
+            print(f"\n[{i + 1}/{n_points}] {scan_label} = {val:.6f}")
+
+            result = compute_energy(val)
+
+            if isinstance(result, (int, float, np.floating)):
+                result = {"energy": float(result)}
+
+            if energies is None:
+                labels = list(result.keys())
+                energies = {lab: np.zeros(n_points) for lab in labels}
+
+            for lab, eng in result.items():
+                energies[lab][i] = eng
+                print(f"  {lab}: E = {eng:.10f}")
+
+        print("\n" + "=" * 60)
+        print("PES scan complete.")
+
+        if save_csv and energies is not None:
+            with open(save_csv, "w", newline="") as fh:
+                writer = csv.writer(fh)
+                writer.writerow([scan_label] + [f"E_{l}" for l in labels])
+                for i, val in enumerate(scan_values):
+                    writer.writerow(
+                        [f"{val:.6f}"] + [f"{energies[l][i]:.12f}" for l in labels]
+                    )
+            print(f"Results saved to {save_csv}")
+
+        return scan_values, energies

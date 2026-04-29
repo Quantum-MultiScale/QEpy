@@ -17,7 +17,12 @@ Commands
 Jupyter notebooks
 =================
 
-Available on `GitHub <https://github.com/Quantum-MultiScale/QEpy/tree/dev/examples/jupyter>`_.
+.. toctree::
+   :maxdepth: 1
 
+   Silicon DOS and Band Structure <jupyter/Si_band_exmpl>
+   Inverse DFT with QEpy <jupyter/inv_dft>
+   QEpy MD Wavefunction Diagnostics <jupyter/qepy_md_wf_data>
+   Ne2 PES: PBE vs RVV10 Mixes <jupyter/ne2_pes_quick>
 
 
