@@ -1,20 +1,26 @@
 """
 XC-mixing helpers for PES scans.
 
-Provides eval_xc_mix, scf_xc_mix, and make_label for running SCF with
-mixed XC functionals via DFTpy.  The general PES loop itself lives on
-``Driver.compute_pes``.
+Provides ``eval_xc_mix``, ``scf_xc_mix``, and ``make_label`` for mixed
+functionals via DFTpy.  The 1-D scan is :meth:`qepy.driver.Driver.compute_pes`,
+which takes ``update_geometry``, ``qe_options``, and ``xc_list``.
 
 Usage
 -----
-    from qepy.pes import make_label, scf_xc_mix
     from qepy.driver import Driver
 
-    def calc(d):
-        opts = update_geometry(qe_options, d)
-        return {make_label(xc): scf_xc_mix(opts, xc) for xc in xc_list}
+    def update_geometry(qe_options, d):
+        opts = dict(qe_options)
+        # ... set geometry for scan coordinate d ...
+        return opts
 
-    grid, energies = Driver.compute_pes(d_grid, calc, scan_label="d (A)")
+    grid, energies = Driver.compute_pes(
+        d_grid,
+        update_geometry,
+        qe_options,
+        xc_list,
+        scan_label="d (A)",
+    )
 """
 
 from dftpy.functional import XC
@@ -92,7 +98,7 @@ def scf_xc_mix(qe_options, xc_mix, maxiter=80, logfile="tmp.out"):
     Returns
     -------
     energy : float
-        Total energy in Hartree.
+        Total energy in Ry (QEpy internal units).
     """
     driver = Driver(qe_options=qe_options, iterative=True, logfile=logfile)
 

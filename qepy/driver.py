@@ -1192,95 +1192,97 @@ class Driver(metaclass=QEpyLibs):
         return cls.name2type(cls.STRESSNAMES, name)
 
     @staticmethod
-    def compute_pes(scan_values, compute_energy, scan_label="x", save_csv=None):
-        """Compute a potential-energy surface along an arbitrary coordinate.
+    def compute_pes(
+        scan_values,
+        update_geometry,
+        qe_options,
+        xc_list,
+        scan_label="x",
+        save_csv=None,
+        maxiter=80,
+        log_prefix="pes",
+    ):
+        """Compute a potential-energy surface along a 1-D coordinate.
 
-        This is a general-purpose scanner that evaluates an energy function
-        at each point along a 1-D coordinate grid.  The physics (SCF method,
-        XC functional, geometry update, etc.) are entirely defined by the
-        *compute_energy* callback.
+        For each scan value ``d``, ``update_geometry(qe_options, d)`` must
+        return updated Quantum ESPRESSO input options for that geometry.
+        Total energies are then computed for every XC mix in ``xc_list``
+        using :func:`qepy.pes.scf_xc_mix` (mixed XC via DFTpy).
 
         Parameters
         ----------
         scan_values : array_like
-            1-D array of scan-parameter values (e.g. distances in Angstrom).
-        compute_energy : callable
-            Called as ``compute_energy(value)`` for each element of
-            *scan_values*.  Must return **one** of:
-
-            * ``float`` -- a single energy.  Stored under the key
-              ``"energy"`` in the results dict.
-            * ``dict[str, float]`` -- multiple labelled energies
-              (e.g. ``{"PBE": -31.4, "RVV10": -31.5}``).
+            1-D grid (e.g. interlayer distances in Angstrom).
+        update_geometry : callable
+            ``update_geometry(qe_options, d) -> dict`` — base options and
+            scan coordinate ``d`` to updated ``qe_options`` for that point.
+        qe_options : dict
+            Base QE input dictionary (same structure as :class:`Driver`).
+        xc_list : sequence of dict
+            XC mixes to compare, e.g.
+            ``[{"PBE": 1.0}, {"PBE": 0.5, "RVV10": 0.5}]``.
         scan_label : str, optional
-            Human-readable label for the scan coordinate (used in
-            screen output and CSV header).  Default ``"x"``.
+            Label for the scan axis in logs and CSV.  Default ``"x"``.
         save_csv : str or None, optional
-            Path to write a CSV file with the results.  ``None`` (default)
-            skips writing.
+            If set, write ``scan_label`` and one column per XC label.
+        maxiter : int, optional
+            Maximum SCF cycles per XC mix (passed to ``scf_xc_mix``).
+        log_prefix : str, optional
+            Log files:
+            ``{log_prefix}_{make_label(xc).replace(' ', '_')}_{d:.2f}.out``.
 
         Returns
         -------
         scan_values : np.ndarray
-            The scan grid (as a NumPy array).
         energies : dict[str, np.ndarray]
-            ``{label: energy_array}`` with one entry per label returned
-            by *compute_energy*.
+            One array per :func:`qepy.pes.make_label` string in ``xc_list``.
 
         Examples
         --------
-        Single energy per point (plain QEpy SCF)::
+        ::
 
-            def calc(d):
-                opts = update_geometry(qe_options, d)
-                drv = Driver(qe_options=opts, iterative=False, logfile=f'd_{d:.2f}.out')
-                E = drv.get_energy()
-                drv.stop()
-                return E
+            from qepy.driver import Driver
 
+            def update_bilayer(qe_options, d):
+                opts = dict(qe_options)
+                # ... set cell / positions for distance d ...
+                return opts
+
+            xc_list = [{"PBE": 1.0}, {"RVV10": 1.0}]
             grid, energies = Driver.compute_pes(
-                np.linspace(2.8, 5.0, 20), calc, scan_label="d (A)")
-
-        Multiple energies per point (e.g. different XC mixes)::
-
-            def calc(d):
-                opts = update_geometry(qe_options, d)
-                return {"PBE": run_scf(opts, "PBE"),
-                        "RVV10": run_scf(opts, "RVV10")}
-
-            grid, energies = Driver.compute_pes(
-                np.linspace(2.8, 5.0, 20), calc, scan_label="d (A)",
-                save_csv="pes.csv")
+                np.linspace(2.8, 5.0, 20),
+                update_bilayer,
+                qe_options,
+                xc_list,
+                scan_label="d (A)",
+                save_csv="pes.csv",
+            )
         """
+        from qepy.pes import make_label, scf_xc_mix
+
         scan_values = np.asarray(scan_values, dtype=float)
         n_points = len(scan_values)
+
+        labels = [make_label(xc) for xc in xc_list]
+        energies = {lab: np.zeros(n_points) for lab in labels}
 
         print(f"PES scan: {n_points} points along {scan_label}")
         print("=" * 60)
 
-        energies = None
-        labels = None
-
         for i, val in enumerate(scan_values):
             print(f"\n[{i + 1}/{n_points}] {scan_label} = {val:.6f}")
 
-            result = compute_energy(val)
-
-            if isinstance(result, (int, float, np.floating)):
-                result = {"energy": float(result)}
-
-            if energies is None:
-                labels = list(result.keys())
-                energies = {lab: np.zeros(n_points) for lab in labels}
-
-            for lab, eng in result.items():
+            opts = update_geometry(qe_options, val)
+            for xc, lab in zip(xc_list, labels):
+                logfile = f"{log_prefix}_{lab.replace(' ', '_')}_{val:.2f}.out"
+                eng = scf_xc_mix(opts, xc, maxiter=maxiter, logfile=logfile)
                 energies[lab][i] = eng
                 print(f"  {lab}: E = {eng:.10f}")
 
         print("\n" + "=" * 60)
         print("PES scan complete.")
 
-        if save_csv and energies is not None:
+        if save_csv:
             with open(save_csv, "w", newline="") as fh:
                 writer = csv.writer(fh)
                 writer.writerow([scan_label] + [f"E_{l}" for l in labels])
