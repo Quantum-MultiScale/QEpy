@@ -53,8 +53,8 @@ jobs:
         env:
           CIBW_BUILD_VERBOSITY: 3
           CIBW_BUILD: ${{ matrix.python }}-${{ matrix.buildplat[1] }}*
-          CIBW_ENVIRONMENT: FFLAGS='-fPIC -fallow-argument-mismatch -ff2c -fno-second-underscore' CPP='gcc -E' LDFLAGS='-headerpad_max_install_names' MACOSX_DEPLOYMENT_TARGET=10.9 tddft=yes
-          CIBW_ENVIRONMENT_PASS_LINUX: FFLAGS CPP LDFLAGS MACOSX_DEPLOYMENT_TARGET tddft
+          CIBW_ENVIRONMENT: FFLAGS='-fPIC -fallow-argument-mismatch -ff2c -fno-second-underscore' CPP='gcc -E' LDFLAGS='-headerpad_max_install_names' MACOSX_DEPLOYMENT_TARGET=10.9 LIBMBD_C_API=0 tddft=yes 
+          CIBW_ENVIRONMENT_PASS_LINUX: FFLAGS CPP LDFLAGS MACOSX_DEPLOYMENT_TARGET LIBMBD_C_API tddft
           CIBW_ARCHS_MACOS: ${{ matrix.buildplat[2] }}
           CIBW_BEFORE_ALL_MACOS: "brew install gfortran && brew unlink gfortran && brew link gfortran && brew install openblas lapack && brew install gnu-sed"
 
@@ -64,8 +64,8 @@ jobs:
         env:
           CIBW_BUILD_VERBOSITY: 3
           CIBW_BUILD: ${{ matrix.python }}-${{ matrix.buildplat[1] }}*
-          CIBW_ENVIRONMENT: FFLAGS='-fPIC -fallow-argument-mismatch -ff2c -fno-second-underscore' CPP='gcc -E' LDFLAGS='-headerpad_max_install_names' MACOSX_DEPLOYMENT_TARGET=11.0 CFLAGS='-fPIC -arch arm64' QE_INSTALL_FLAGS='--host=host' build_alias=arm-apple-darwin20.0.0 host_alias=x86_64-unknown-linux-gnu tddft=yes
-          CIBW_ENVIRONMENT_PASS_LINUX: FFLAGS CPP LDFLAGS MACOSX_DEPLOYMENT_TARGET QE_INSTALL_FLAGS CFLAGS build_alias host_alias tddft
+          CIBW_ENVIRONMENT: FFLAGS='-fPIC -fallow-argument-mismatch -ff2c -fno-second-underscore' CPP='gcc -E' LDFLAGS='-headerpad_max_install_names' MACOSX_DEPLOYMENT_TARGET=11.0 CFLAGS='-fPIC -arch arm64' QE_INSTALL_FLAGS='--host=host' build_alias=arm-apple-darwin20.0.0 host_alias=x86_64-unknown-linux-gnu LIBMBD_C_API=0 tddft=yes
+          CIBW_ENVIRONMENT_PASS_LINUX: FFLAGS CPP LDFLAGS MACOSX_DEPLOYMENT_TARGET QE_INSTALL_FLAGS CFLAGS build_alias host_alias LIBMBD_C_API tddft
           CIBW_ARCHS_MACOS: ${{ matrix.buildplat[2] }}
           CIBW_BEFORE_ALL_MACOS: "brew install gfortran && brew unlink gfortran && brew link gfortran && brew install openblas lapack && brew install gnu-sed"
 
