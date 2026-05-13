@@ -52,8 +52,8 @@ python -m pip install qepy
 
 Open the bundled notebooks in Colab (branch **`dev`**):
 
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Quantum-MultiScale/QEpy/blob/dev/doc/source/tutorials/jupyter/inv_dft.ipynb) **inv_dft** ·
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Quantum-MultiScale/QEpy/blob/dev/doc/source/tutorials/jupyter/Si_band_exmpl.ipynb) **Si_band_exmpl** ·
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Quantum-MultiScale/QEpy/blob/dev/doc/source/tutorials/jupyter/ne2_pes_quick.ipynb) **ne2_pes_quick** ·
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Quantum-MultiScale/QEpy/blob/dev/doc/source/tutorials/jupyter/qepy_md_wf_data.ipynb) **qepy_md_wf_data** ·
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Quantum-MultiScale/QEpy/blob/dev/doc/source/tutorials/jupyter/Si_phonon_exmpl.ipynb) **Si_phonon_exmpl**
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Quantum-MultiScale/QEpy/blob/QEpy_pap/doc/source/tutorials/jupyter/inv_dft.ipynb) **inv_dft** ·
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Quantum-MultiScale/QEpy/blob/QEpy_pap/doc/source/tutorials/jupyter/Si_band_exmpl.ipynb) **Si_band_exmpl** ·
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Quantum-MultiScale/QEpy/blob/QEpy_pap/doc/source/tutorials/jupyter/ne2_pes_quick.ipynb) **ne2_pes_quick** ·
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Quantum-MultiScale/QEpy/blob/QEpy_pap/doc/source/tutorials/jupyter/qepy_md_wf_data.ipynb) **qepy_md_wf_data** ·
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Quantum-MultiScale/QEpy/blob/QEpy_pap/doc/source/tutorials/jupyter/Si_phonon_exmpl.ipynb) **Si_phonon_exmpl**
