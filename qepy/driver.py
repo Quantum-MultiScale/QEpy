@@ -638,7 +638,7 @@ class Driver(metaclass=QEpyLibs):
         self.qepy_pw.qepy_mod.qepy_get_tau(out, gather = gather)
         return out
 
-    def get_wave_function(self, band=None, kpt=0):
+    def get_wave_function(self, band=None, kpt=0, gather = True):
         """Returns wave-function array in real space."""
         self.qepy_pw.qepy_mod.qepy_get_evc(kpt + 1)
         nrs = np.zeros(3, dtype = 'int32')
@@ -654,7 +654,7 @@ class Driver(metaclass=QEpyLibs):
             if band.ndim == 0 : band = [band]
         wfs = []
         for ibnd in band :
-            self.qepy_pw.qepy_mod.qepy_get_wf(kpt + 1, ibnd + 1, wf)
+            self.qepy_pw.qepy_mod.qepy_get_wf(kpt + 1, ibnd + 1, wf, gather = gather)
             wfs.append(wf.copy())
         return wfs
 
