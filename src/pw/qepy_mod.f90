@@ -70,6 +70,21 @@ CONTAINS
       ENDIF
    END SUBROUTINE
 
+   SUBROUTINE mp_gather_complex_s(fin, fout)
+      USE kinds,                ONLY : DP
+      USE fft_base,             ONLY : dffts
+      !
+      IMPLICIT NONE
+      COMPLEX(DP), INTENT(IN) :: fin(:)
+      COMPLEX(DP), INTENT(OUT) :: fout(:)
+      !
+      IF (dffts%nproc > 1) THEN
+         CALL gather_grid(dffts, fin, fout)
+      ELSE
+         fout(:) = fin(:)
+      ENDIF
+   END SUBROUTINE
+
    SUBROUTINE mp_scatter_complex(fin, fout)
       USE kinds,                ONLY : DP
       USE fft_base,             ONLY : dfftp
@@ -453,7 +468,7 @@ CONTAINS
       CALL invfft ('Wave', psic, dffts)
       !
       IF ( gather_ ) THEN
-         CALL mp_gather(psic(1:dffts%nnr), wf)
+         CALL mp_gather_complex_s(psic(1:dffts%nnr), wf)
       ELSE
          nnr = min(size(wf), dffts%nnr)
          wf(1:nnr) = psic(1:nnr)
@@ -509,7 +524,7 @@ CONTAINS
          CALL invfft ('Wave', psic, dffts)
          !
          IF ( gather_ ) THEN
-            CALL mp_gather(psic(1:dffts%nnr), vk(:, i))
+            CALL mp_gather_complex_s(psic(1:dffts%nnr), vk(:, i))
          ELSE
             nnr = min(size(vk, 1), dffts%nnr)
             vk(1:nnr, i) = psic(1:nnr)

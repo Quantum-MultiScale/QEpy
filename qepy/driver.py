@@ -642,11 +642,8 @@ class Driver(metaclass=QEpyLibs):
         """Returns wave-function array in real space."""
         self.qepy_pw.qepy_mod.qepy_get_evc(kpt + 1)
         nrs = np.zeros(3, dtype = 'int32')
-        self.qepy_pw.qepy_mod.qepy_get_grid_smooth(nrs)
-        if self.is_root :
-            wf = np.empty(np.prod(nrs), order = 'F', dtype = np.complex128)
-        else :
-            wf = np.empty(1, order = 'F', dtype = np.complex128)
+        self.qepy_pw.qepy_mod.qepy_get_grid_smooth(nrs, gather = gather)
+        wf = np.empty(int(np.prod(nrs)), order = 'F', dtype = np.complex128)
         if band is None :
             band = np.arange(self.get_number_of_bands())
         else :
