@@ -54,7 +54,7 @@ jobs:
 
       - name: Download Python wheels
         if: steps.check-tag.outputs.match == 'true'
-        uses: dawidd6/action-download-artifact@v6
+        uses: dawidd6/action-download-artifact@v10
         with:
           github_token: ${{secrets.GITHUB_TOKEN}}
           workflow: wheels.yml
@@ -81,13 +81,13 @@ jobs:
 
       - name: Publish distribution to Test PyPI
         if: steps.check-tag.outputs.run_testpypi == 'true'
-        uses: pypa/gh-action-pypi-publish@v1.10.3
+        uses: pypa/gh-action-pypi-publish@release/v1
         with:
           password: ${{ secrets.TEST_PYPI_API_TOKEN }}
           repository_url: https://test.pypi.org/legacy/
 
       - name: Publish distribution to PyPI
         if: steps.check-tag.outputs.run_pypi == 'true'
-        uses: pypa/gh-action-pypi-publish@v1.10.3
+        uses: pypa/gh-action-pypi-publish@release/v1
         with:
           password: ${{ secrets.PYPI_API_TOKEN }}
