@@ -12,21 +12,23 @@ on:
 
 jobs:
   build_wheels:
-    name: Build wheel for ${{ matrix.python }}-${{ matrix.buildplat[1] }}-${{ matrix.buildplat[2] }}
+    name: Build wheel for ${{ matrix.python }}-${{ matrix.buildplat[1] }}
+      ${{ matrix.buildplat[2] }} ${{ matrix.buildplat[3] }}
+      ${{ matrix.buildplat[4] }}
     runs-on: ${{ matrix.buildplat[0] }}
     strategy:
       fail-fast: false
       matrix:
         buildplat:
-        - [ubuntu-latest, manylinux, x86_64]
-        - [macos-15-intel, macosx, x86_64]
-        - [macos-14, macosx, arm64]
-        python: ["cp38", "cp39", "cp310", "cp311", "cp312", "cp313", "cp314"]
+        - [ubuntu-22.04, manylinux, x86_64, "", ""]
+        - [macos-15-intel, macosx, x86_64, openblas, "10.14" ]
+        - [macos-14, macosx, arm64, openblas, "12.3"]
+        python: ["cp38", "cp39", "cp310", "cp311", "cp312", "cp313"]
         exclude:
-        - buildplat: [macos-14, macosx, arm64]
-          python: ["cp38", "cp39"]
-        - buildplat: [macos-15-intel, macosx, x86_64]
-          python: ["cp38", "cp39"]
+        - buildplat: [macos-15-intel, macosx, x86_64, openblas, "10.14" ]
+          python: "cp38"
+        - buildplat: [macos-14, macosx, arm64, openblas, "12.3"]
+          python: "cp38"
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
@@ -38,42 +40,22 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Build wheels on linux
-        if: ${{ matrix.buildplat[1] == 'manylinux' }}
-        uses: pypa/cibuildwheel@v2.21.3
+      - name: Setup OS & Compiler Environments
         env:
-          CIBW_BUILD_VERBOSITY: 3
-          CIBW_BUILD: ${{ matrix.python }}-${{ matrix.buildplat[1] }}*
-          CIBW_ENVIRONMENT: FFLAGS='-fPIC -fallow-argument-mismatch' tddft=yes
-          CIBW_ENVIRONMENT_PASS_LINUX: FFLAGS tddft
-          CIBW_ARCHS_LINUX: "auto"
-          CIBW_BEFORE_ALL_LINUX: "yum install -y blas-devel lapack-devel fftw-devel"
+          TARGET_ARCH: ${{ matrix.buildplat[2] }}
+          BLAS_VARIANT: ${{ matrix.buildplat[3] }}
+          MACOSX_DEPLOYMENT_TARGET: ${{ matrix.buildplat[4] }}
+        run: |
+          source tools/wheels/arch_env.sh
 
-      - name: Build wheels on macos
-        if: ${{ matrix.buildplat[1] == 'macosx' && matrix.buildplat[2] == 'x86_64' }}
-        uses: pypa/cibuildwheel@v2.17.0
+      - name: Build wheels
+        uses: pypa/cibuildwheel@v3.3.1
         env:
-          CIBW_BUILD_VERBOSITY: 3
           CIBW_BUILD: ${{ matrix.python }}-${{ matrix.buildplat[1] }}*
-          CIBW_ENVIRONMENT: FFLAGS='-fPIC -fallow-argument-mismatch -ff2c -fno-second-underscore' CPP='gcc -E' LDFLAGS='-headerpad_max_install_names' MACOSX_DEPLOYMENT_TARGET=10.9 tddft=yes
-          CIBW_ENVIRONMENT_PASS_LINUX: FFLAGS CPP LDFLAGS MACOSX_DEPLOYMENT_TARGET tddft
-          CIBW_ARCHS_MACOS: ${{ matrix.buildplat[2] }}
-          CIBW_BEFORE_ALL_MACOS: "brew install gfortran && brew unlink gfortran && brew link gfortran && brew install openblas lapack && brew install gnu-sed"
+          CIBW_ARCHS: ${{ matrix.buildplat[2] }}
+          CIBW_BUILD_VERBOSITY: 1
 
-      - name: Build wheels on macos_arm64
-        if: ${{ matrix.buildplat[1] == 'macosx' && matrix.buildplat[2] == 'arm64' }}
-        uses: pypa/cibuildwheel@v2.21.3
-        env:
-          CIBW_BUILD_VERBOSITY: 3
-          CIBW_BUILD: ${{ matrix.python }}-${{ matrix.buildplat[1] }}*
-          CIBW_ENVIRONMENT: FFLAGS='-fPIC -fallow-argument-mismatch -ff2c -fno-second-underscore' CPP='gcc -E' LDFLAGS='-headerpad_max_install_names' MACOSX_DEPLOYMENT_TARGET=11.0 CFLAGS='-fPIC -arch arm64' QE_INSTALL_FLAGS='--host=host' build_alias=arm-apple-darwin20.0.0 host_alias=x86_64-unknown-linux-gnu tddft=yes
-          CIBW_ENVIRONMENT_PASS_LINUX: FFLAGS CPP LDFLAGS MACOSX_DEPLOYMENT_TARGET QE_INSTALL_FLAGS CFLAGS build_alias host_alias tddft
-          CIBW_ARCHS_MACOS: ${{ matrix.buildplat[2] }}
-          CIBW_BEFORE_ALL_MACOS: "brew install gfortran && brew unlink gfortran && brew link gfortran && brew install openblas lapack && brew install gnu-sed"
-
-
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7.0.0
         with:
-          name: ${{ matrix.python }}-${{ matrix.buildplat[1] }}-${{ matrix.buildplat[2] }}
           path: ./wheelhouse/*.whl
-
+          name: ${{ matrix.python }}-${{ matrix.buildplat[1] }}-${{ matrix.buildplat[2] }}-${{ matrix.buildplat[3] }}-${{ matrix.buildplat[4] }}

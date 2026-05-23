@@ -76,3 +76,17 @@ source = "https://gitlab.com/shaoxc/qepy"
 
 [tool.setuptools.dynamic]
 version = {attr = 'qepy.__version__'}
+
+[tool.cibuildwheel]
+before-build = "bash {project}/tools/wheels/cibw_before_build.sh {project}"
+
+[tool.cibuildwheel.linux]
+manylinux-x86_64-image = "manylinux2014"
+manylinux-aarch64-image = "manylinux2014"
+
+[tool.cibuildwheel.linux.environment]
+RUNNER_OS="Linux"
+
+[tool.cibuildwheel.macos.environment]
+RUNNER_OS="macOS"
+PKG_CONFIG_PATH = "{project}"

@@ -18,12 +18,6 @@ include ${QEDIR}/make.inc
 PYTHON := $(or ${PYTHON}, python3)
 PYTHONEXEC := $(shell ${PYTHON} -c 'import sys; print(sys.executable)')
 UNAME = $(shell uname)
-ifeq (${UNAME}, Darwin)
-   SEDI := gsed -i
-else
-   SEDI := sed -i
-endif
-
 F2FLAGS = $(F90FLAGS) $(QEPY_INCS)
 
 #export LDFLAGS := ${LDFLAGS}
