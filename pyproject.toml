@@ -86,7 +86,9 @@ manylinux-aarch64-image = "manylinux2014"
 
 [tool.cibuildwheel.linux.environment]
 RUNNER_OS="Linux"
+tddft="yes"
 
 [tool.cibuildwheel.macos.environment]
 RUNNER_OS="macOS"
 PKG_CONFIG_PATH = "{project}"
+tddft="yes"

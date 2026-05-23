@@ -1,4 +1,4 @@
-__version__ = "7.2.1"
+__version__ = "7.2.1rc0"
 import sys
 from pathlib import Path
 from importlib import import_module
