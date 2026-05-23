@@ -7,6 +7,7 @@ OS_NAME=$(uname -s)
 export TARGET_ARCH=${TARGET_ARCH:-$(uname -m)}
 
 export LIBMBD_C_API=0
+export tddft="yes"
 
 if [[ "$OS_NAME" == "Linux" ]]; then
     export FFLAGS="-fPIC -fallow-argument-mismatch"
