@@ -49,7 +49,7 @@ If you already have the QEpy repository (e.g. you are reading skills from a chec
 ```bash
 cd "$BUILD_ROOT"
 
-git clone https://github.com/shaoxc/qepy.git "$QEPY_ROOT"
+git clone https://github.com/Quantum-MultiScale/QEpy.git "$QEPY_ROOT"
 cd "$QEPY_ROOT"
 git checkout dev
 git rev-parse HEAD

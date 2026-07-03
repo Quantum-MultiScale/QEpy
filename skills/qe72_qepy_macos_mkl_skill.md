@@ -351,7 +351,7 @@ Clone QEpy:
 
 ```bash
 cd "$BUILD_ROOT"
-git clone https://github.com/shaoxc/qepy.git "$QEPY_ROOT"
+git clone https://github.com/Quantum-MultiScale/QEpy.git "$QEPY_ROOT"
 ```
 
 Use the branch tested with this procedure:
@@ -1075,7 +1075,7 @@ cd "$QE_ROOT"
 git submodule update --init --recursive
 
 cd "$BUILD_ROOT"
-git clone https://github.com/shaoxc/qepy.git "$QEPY_ROOT"
+git clone https://github.com/Quantum-MultiScale/QEpy.git "$QEPY_ROOT"
 
 cd "$QEPY_ROOT"
 git checkout dev

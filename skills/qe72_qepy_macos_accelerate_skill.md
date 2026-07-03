@@ -271,7 +271,7 @@ cd "$BUILD_ROOT"
 Clone QEpy:
 
 ```bash
-git clone https://github.com/shaoxc/qepy.git QEpy
+git clone https://github.com/Quantum-MultiScale/QEpy.git QEpy
 ```
 
 Enter the repository:
@@ -1165,7 +1165,7 @@ git describe --tags --exact-match
 
 # Clone QEpy
 cd "$BUILD_ROOT"
-git clone https://github.com/shaoxc/qepy.git QEpy
+git clone https://github.com/Quantum-MultiScale/QEpy.git QEpy
 cd "$QEPY_ROOT"
 git checkout dev
 

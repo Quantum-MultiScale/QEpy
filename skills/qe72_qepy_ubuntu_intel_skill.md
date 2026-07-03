@@ -205,7 +205,7 @@ git clone --branch qe-7.2 --single-branch \
 cd "$QE_ROOT" && git submodule update --init --recursive
 
 cd "$BUILD_ROOT"
-git clone https://github.com/shaoxc/qepy.git "$QEPY_ROOT"
+git clone https://github.com/Quantum-MultiScale/QEpy.git "$QEPY_ROOT"
 cd "$QEPY_ROOT" && git checkout dev
 ```
 

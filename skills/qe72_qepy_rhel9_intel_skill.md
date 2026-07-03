@@ -359,7 +359,7 @@ qe-7.2
 
 ```bash
 cd "$BUILD_ROOT"
-git clone https://github.com/shaoxc/qepy.git "$QEPY_ROOT"
+git clone https://github.com/Quantum-MultiScale/QEpy.git "$QEPY_ROOT"
 cd "$QEPY_ROOT"
 git checkout dev
 git rev-parse HEAD
@@ -962,7 +962,7 @@ git clone --branch qe-7.2 --single-branch \
   https://gitlab.com/QEF/q-e.git "$QE_ROOT"
 cd "$QE_ROOT" && git submodule update --init --recursive
 cd "$BUILD_ROOT"
-git clone https://github.com/shaoxc/qepy.git "$QEPY_ROOT"
+git clone https://github.com/Quantum-MultiScale/QEpy.git "$QEPY_ROOT"
 cd "$QEPY_ROOT" && git checkout dev
 
 # Python environment

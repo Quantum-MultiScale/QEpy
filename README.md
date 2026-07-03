@@ -54,7 +54,7 @@ Minimal manual outline (see skills for `make.inc`, compilers, and BLAS/LAPACK):
  - **QEpy** — use a dedicated venv and link to the QE tree above:
 
      ```shell
-     git clone -b dev https://github.com/shaoxc/qepy.git
+     git clone -b dev https://github.com/Quantum-MultiScale/QEpy.git
      cd qepy
      python3 -m venv venv_qepy && source venv_qepy/bin/activate
      python -m pip install "numpy<2" "f90wrap==0.2.14" meson ninja packaging
