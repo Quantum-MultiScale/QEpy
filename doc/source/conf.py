@@ -66,4 +66,4 @@ def linkcode_resolve(domain, info):
         return None
 
     filename = info['module'].replace('.', '/')+'.py'
-    return "https ://gitlab.com/shaoxc/qepy/tree/master/%s" % filename
+    return "https://github.com/Quantum-MultiScale/QEpy/tree/dev/%s" % filename

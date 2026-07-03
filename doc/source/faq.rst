@@ -146,7 +146,7 @@ OpenMPI
       done
 
 
-.. _QEpy: https://gitlab.com/shaoxc/qepy
+.. _QEpy: https://github.com/Quantum-MultiScale/QEpy
 .. _DFTpy: http://dftpy.rutgers.edu
 
 MacOS

@@ -70,9 +70,9 @@ all = [
 ]
 
 [project.urls]
-homepage = "https://gitlab.com/shaoxc/qepy"
+homepage = "https://github.com/Quantum-MultiScale/QEpy"
 documentation = "http://qepy.rutgers.edu"
-source = "https://gitlab.com/shaoxc/qepy"
+source = "https://github.com/Quantum-MultiScale/QEpy"
 
 [tool.setuptools.dynamic]
 version = {attr = 'qepy.__version__'}
