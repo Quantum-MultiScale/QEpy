@@ -6,10 +6,10 @@
 |------|------------|
 | **Default macOS build** — Apple Accelerate for BLAS/LAPACK | `qe72_qepy_macos_accelerate_skill.md` |
 | **Intel Mac with oneMKL** — archived Intel oneAPI 2023.x | `qe72_qepy_macos_mkl_skill.md` (this file) |
-| **RHEL 9 — Open MPI + OpenBLAS** | `qe72_qepy_rhel9_openblas_skill.md` |
-| **RHEL 9 — Intel MPI + oneMKL** | `qe72_qepy_rhel9_intel_skill.md` |
-| **Ubuntu — Open MPI + OpenBLAS** | `qe72_qepy_ubuntu_openblas_skill.md` |
-| **Ubuntu — Intel MPI + oneMKL** | `qe72_qepy_ubuntu_intel_skill.md` |
+| **Ubuntu — Intel MPI + oneMKL** (Linux default) | `qe72_qepy_ubuntu_intel_skill.md` |
+| **RHEL 9 — Intel MPI + oneMKL** (Linux default) | `qe72_qepy_rhel9_intel_skill.md` |
+| **Ubuntu — Open MPI + OpenBLAS** (open-source alternative) | `qe72_qepy_ubuntu_openblas_skill.md` |
+| **RHEL 9 — Open MPI + OpenBLAS** (open-source alternative) | `qe72_qepy_rhel9_openblas_skill.md` |
 
 Use **this skill** only when you need Intel oneMKL on an Intel Mac (`x86_64`). For Apple Silicon or for the default macOS setup, use the Accelerate skill instead.
 

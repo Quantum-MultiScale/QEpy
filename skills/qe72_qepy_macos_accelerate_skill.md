@@ -6,10 +6,10 @@
 |------|------------|
 | **Default macOS build** — Apple Accelerate for BLAS/LAPACK | `qe72_qepy_macos_accelerate_skill.md` (this file) |
 | **Intel Mac with oneMKL** — archived Intel oneAPI 2023.x | `qe72_qepy_macos_mkl_skill.md` |
-| **RHEL 9 — Open MPI + OpenBLAS** | `qe72_qepy_rhel9_openblas_skill.md` |
-| **RHEL 9 — Intel MPI + oneMKL** | `qe72_qepy_rhel9_intel_skill.md` |
-| **Ubuntu — Open MPI + OpenBLAS** | `qe72_qepy_ubuntu_openblas_skill.md` |
-| **Ubuntu — Intel MPI + oneMKL** | `qe72_qepy_ubuntu_intel_skill.md` |
+| **Ubuntu — Intel MPI + oneMKL** (Linux default) | `qe72_qepy_ubuntu_intel_skill.md` |
+| **RHEL 9 — Intel MPI + oneMKL** (Linux default) | `qe72_qepy_rhel9_intel_skill.md` |
+| **Ubuntu — Open MPI + OpenBLAS** (open-source alternative) | `qe72_qepy_ubuntu_openblas_skill.md` |
+| **RHEL 9 — Open MPI + OpenBLAS** (open-source alternative) | `qe72_qepy_rhel9_openblas_skill.md` |
 
 Use **this skill** unless you specifically need Intel oneMKL. Do not let `configure` auto-detect BLAS/LAPACK on macOS; always set Accelerate explicitly as described below.
 
@@ -41,6 +41,8 @@ The Quantum ESPRESSO 7.2 release is tagged `qe-7.2` in the official QEF GitLab r
 **Important:** use one Homebrew prefix consistently for the entire build. Do not mix `/usr/local` compilers with `/opt/homebrew` libraries, or vice versa.
 
 **Agent instruction:** before creating or reusing a virtual environment, ask the user what name they want for the QEpy Python environment. If they have no preference, use `venv_qepy`.
+
+**Before building on macOS:** run [`preflight_macos.sh`](preflight_macos.sh). Shared steps (clone, venv, QE build, QEpy install, test) are in [`common.md`](common.md).
 
 ---
 
@@ -338,7 +340,14 @@ cd "$BUILD_ROOT"
 
 If `$VENV_DIR` already exists, do **not** recreate it automatically. Run the compatibility checks below first. If any check fails, tell the user and either fix the environment or choose a different `VENV_NAME`.
 
-## Compatibility checks
+Or source the shared check script (set `VENV_DIR`, `CC`, and optionally `TOOLCHAIN_PREFIX="$HOMEBREW_PREFIX"`):
+
+```bash
+source "$QEPY_ROOT/skills/check_qepy_venv.sh"
+check_qepy_venv || exit 1
+```
+
+## Compatibility checks (inline)
 
 Run these checks before installing QEpy build dependencies or building QEpy. All must pass.
 

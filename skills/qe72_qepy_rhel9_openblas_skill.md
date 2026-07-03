@@ -4,18 +4,18 @@
 
 | Goal | Skill file |
 |------|------------|
-| **RHEL 9 — Open MPI + OpenBLAS** (dnf-only, no Intel installer) | `qe72_qepy_rhel9_openblas_skill.md` (this file) |
-| **RHEL 9 — Intel MPI + oneMKL** | `qe72_qepy_rhel9_intel_skill.md` |
-| **Ubuntu — Open MPI + OpenBLAS** | `qe72_qepy_ubuntu_openblas_skill.md` |
-| **Ubuntu — Intel MPI + oneMKL** | `qe72_qepy_ubuntu_intel_skill.md` |
+| **Ubuntu — Intel MPI + oneMKL** (Linux default) | `qe72_qepy_ubuntu_intel_skill.md` |
+| **RHEL 9 — Intel MPI + oneMKL** (Linux default) | `qe72_qepy_rhel9_intel_skill.md` |
+| **Ubuntu — Open MPI + OpenBLAS** (open-source alternative) | `qe72_qepy_ubuntu_openblas_skill.md` |
+| **RHEL 9 — Open MPI + OpenBLAS** (open-source alternative) | `qe72_qepy_rhel9_openblas_skill.md` (this file) |
 | **macOS default** — Apple Accelerate | `qe72_qepy_macos_accelerate_skill.md` |
 | **Intel Mac with oneMKL** — archived Intel oneAPI 2023.x | `qe72_qepy_macos_mkl_skill.md` |
 
-Use **this skill** as the default RHEL 9 path when you want a fully open-source stack from EL9 repositories: **gcc-toolset-14**, **Open MPI**, **OpenBLAS**, and **FFTW**. No Intel oneAPI installation is required.
+Use **this skill** as an **open-source alternative** when Intel oneAPI is unavailable or the user explicitly wants a fully open-source stack from EL9 repositories: **gcc-toolset-14**, **Open MPI**, **OpenBLAS**, and **FFTW**. No Intel oneAPI installation is required.
 
-If Intel oneAPI (Intel MPI + MKL) is already installed or mandated by your HPC site, use `qe72_qepy_rhel9_intel_skill.md` instead.
+For the standard Linux stack (Intel MPI + oneMKL), use `qe72_qepy_rhel9_intel_skill.md`.
 
-**Agent instruction:** on RHEL 9, ask whether the user has Intel oneAPI. If yes and they want MKL/Intel MPI, switch to the Intel skill. Otherwise use this skill. Also ask for the QEpy venv name (default `venv_qepy`).
+**Agent instruction:** use this skill only when Intel oneAPI is **not** present or the user prefers open-source packages. Otherwise use the Intel RHEL skill. Ask for the QEpy venv name (default `venv_qepy`).
 
 ---
 
@@ -454,8 +454,8 @@ qedir="$QE_ROOT" python -m pip install --no-build-isolation --no-cache-dir -v .
 
 ## Design choices
 
-- **Default EL9 open-source stack** — no Intel installer required.
+- **Open-source fallback** — use when Intel oneAPI is unavailable or not desired.
 - **OpenBLAS** provides both BLAS and LAPACK via `/usr/lib64/libopenblas.so`.
-- **Open MPI** from EL9 is the default MPI implementation for this skill.
+- **Open MPI** from EL9 is the MPI implementation for this skill.
 - **GCC toolset 14** avoids GCC 15 / QE 7.2 MBD conflicts.
-- **For Intel MPI + MKL**, use `qe72_qepy_rhel9_intel_skill.md`.
+- **Standard Linux stack (Intel MPI + MKL):** use `qe72_qepy_rhel9_intel_skill.md`.

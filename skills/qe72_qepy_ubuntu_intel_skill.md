@@ -4,16 +4,18 @@
 
 | Goal | Skill file |
 |------|------------|
-| **Ubuntu — Open MPI + OpenBLAS** (`apt`, no Intel installer) | `qe72_qepy_ubuntu_openblas_skill.md` |
-| **Ubuntu — Intel MPI + oneMKL** | `qe72_qepy_ubuntu_intel_skill.md` (this file) |
-| **RHEL 9 — Open MPI + OpenBLAS** | `qe72_qepy_rhel9_openblas_skill.md` |
-| **RHEL 9 — Intel MPI + oneMKL** | `qe72_qepy_rhel9_intel_skill.md` |
+| **Ubuntu — Intel MPI + oneMKL** (Linux default) | `qe72_qepy_ubuntu_intel_skill.md` (this file) |
+| **RHEL 9 — Intel MPI + oneMKL** (Linux default) | `qe72_qepy_rhel9_intel_skill.md` |
+| **Ubuntu — Open MPI + OpenBLAS** (open-source alternative) | `qe72_qepy_ubuntu_openblas_skill.md` |
+| **RHEL 9 — Open MPI + OpenBLAS** (open-source alternative) | `qe72_qepy_rhel9_openblas_skill.md` |
 | **macOS default** — Apple Accelerate | `qe72_qepy_macos_accelerate_skill.md` |
 | **Intel Mac with oneMKL** | `qe72_qepy_macos_mkl_skill.md` |
 
-Use **this skill** when Intel oneAPI (Intel MPI + oneMKL) is installed on Ubuntu. For an `apt`-only stack (Open MPI + OpenBLAS), use `qe72_qepy_ubuntu_openblas_skill.md`.
+Use **this skill** as the **standard Ubuntu / Linux path**: **Intel MPI + oneMKL** from Intel oneAPI. Install the [Intel oneAPI Base Toolkit](https://www.intel.com/content/www/us/en/developer/tools/oneapi/base-toolkit.html) (MKL + Intel MPI) before starting.
 
-**Agent instruction:** ask whether Intel oneAPI is installed. If not, use the OpenBLAS Ubuntu skill. Ask for the QEpy venv name (default `venv_qepy`).
+For an open-source stack from `apt` only (Colab, minimal VMs, or no oneAPI), use `qe72_qepy_ubuntu_openblas_skill.md`.
+
+**Agent instruction:** on Ubuntu, use this skill by default. If Intel oneAPI is not installed and cannot be installed, fall back to the OpenBLAS skill. Ask for the QEpy venv name (default `venv_qepy`).
 
 ---
 
@@ -359,7 +361,7 @@ export MKL_INTERFACE_LIB=mkl_gf_lp64
 
 ## Design choices
 
-- **Intel oneAPI on Linux** remains supported on Ubuntu (unlike macOS after 2023.x).
+- **Intel oneAPI on Linux** is the standard stack (Intel MPI + oneMKL).
 - **GFortran from Ubuntu** drives QE; Intel MPI wraps it via `I_MPI_FC`.
 - **Sequential MKL** avoids MPI/OpenMP oversubscription during initial bring-up.
-- **For Open MPI + OpenBLAS**, use `qe72_qepy_ubuntu_openblas_skill.md`.
+- **Open-source fallback (Open MPI + OpenBLAS):** use `qe72_qepy_ubuntu_openblas_skill.md`.

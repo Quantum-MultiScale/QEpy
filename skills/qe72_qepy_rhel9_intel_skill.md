@@ -4,16 +4,18 @@
 
 | Goal | Skill file |
 |------|------------|
-| **Ubuntu — Open MPI + OpenBLAS** | `qe72_qepy_ubuntu_openblas_skill.md` |
-| **Ubuntu — Intel MPI + oneMKL** | `qe72_qepy_ubuntu_intel_skill.md` |
-| **RHEL 9 — Open MPI + OpenBLAS** (dnf-only, no Intel installer) | `qe72_qepy_rhel9_openblas_skill.md` |
-| **RHEL 9 — Intel MPI + oneMKL** | `qe72_qepy_rhel9_intel_skill.md` (this file) |
+| **Ubuntu — Intel MPI + oneMKL** (Linux default) | `qe72_qepy_ubuntu_intel_skill.md` |
+| **RHEL 9 — Intel MPI + oneMKL** (Linux default) | `qe72_qepy_rhel9_intel_skill.md` (this file) |
+| **Ubuntu — Open MPI + OpenBLAS** (open-source alternative) | `qe72_qepy_ubuntu_openblas_skill.md` |
+| **RHEL 9 — Open MPI + OpenBLAS** (open-source alternative) | `qe72_qepy_rhel9_openblas_skill.md` |
 | **macOS default** — Apple Accelerate | `qe72_qepy_macos_accelerate_skill.md` |
 | **Intel Mac with oneMKL** — archived Intel oneAPI 2023.x | `qe72_qepy_macos_mkl_skill.md` |
 
-Use **this skill** when Intel oneAPI (Intel MPI + oneMKL) is installed or provided by your site modules. For a build using only EL9 `dnf` packages (Open MPI + OpenBLAS), use `qe72_qepy_rhel9_openblas_skill.md` instead.
+Use **this skill** as the **standard RHEL 9 / Linux path**: **Intel MPI + oneMKL** from Intel oneAPI. Install the [Intel oneAPI Base Toolkit](https://www.intel.com/content/www/us/en/developer/tools/oneapi/base-toolkit.html) (MKL + Intel MPI) or load site modules before starting.
 
-**Agent instruction:** if the user's RHEL 9 stack is unclear, ask whether they have Intel oneAPI available. If not, or if they prefer open-source packages only, use the OpenBLAS skill. Also ask for the QEpy venv name (default `venv_qepy`).
+For a build using only EL9 `dnf` packages (Open MPI + OpenBLAS), use `qe72_qepy_rhel9_openblas_skill.md`.
+
+**Agent instruction:** on RHEL 9, use this skill by default. If Intel oneAPI is not available and cannot be installed, or the user explicitly wants open-source packages only, fall back to the OpenBLAS skill. Ask for the QEpy venv name (default `venv_qepy`).
 
 ---
 
@@ -1007,9 +1009,9 @@ ldd "$QE_ROOT/bin/pw.x" | grep -i mkl
 
 - **QE 7.2 is pinned** because this is the version verified with this QEpy build.
 - **GCC toolset 14 is used** for GFortran to avoid GCC 15 / MBD conflicts while keeping a supported Fortran compiler on EL9.
-- **Intel MPI + oneMKL** are the default linear algebra and parallelism stack on RHEL 9 for this skill.
+- **Intel MPI + oneMKL** are the standard linear algebra and parallelism stack on Linux for this skill.
 - **Sequential MKL** (`mkl_sequential`) avoids OpenMP-runtime conflicts with MPI during initial bring-up.
 - **Homebrew FFTW** from EL9 is retained so FFT and BLAS/LAPACK changes can be validated independently.
 - **LP64 MKL interface** matches QE's conventional Fortran BLAS/LAPACK calls; prefer `mkl_gf_lp64` with GFortran.
 - **`make all` is required** because QEpy links components beyond `pw.x`.
-- **For Open MPI + OpenBLAS on EL9**, use `qe72_qepy_rhel9_openblas_skill.md`.
+- **For Open MPI + OpenBLAS on EL9**, use `qe72_qepy_rhel9_openblas_skill.md` (open-source fallback).

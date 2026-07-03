@@ -4,18 +4,18 @@
 
 | Goal | Skill file |
 |------|------------|
-| **Ubuntu — Open MPI + OpenBLAS** (`apt`, no Intel installer) | `qe72_qepy_ubuntu_openblas_skill.md` (this file) |
-| **Ubuntu — Intel MPI + oneMKL** | `qe72_qepy_ubuntu_intel_skill.md` |
-| **RHEL 9 — Open MPI + OpenBLAS** | `qe72_qepy_rhel9_openblas_skill.md` |
-| **RHEL 9 — Intel MPI + oneMKL** | `qe72_qepy_rhel9_intel_skill.md` |
+| **Ubuntu — Intel MPI + oneMKL** (Linux default) | `qe72_qepy_ubuntu_intel_skill.md` |
+| **RHEL 9 — Intel MPI + oneMKL** (Linux default) | `qe72_qepy_rhel9_intel_skill.md` |
+| **Ubuntu — Open MPI + OpenBLAS** (open-source alternative) | `qe72_qepy_ubuntu_openblas_skill.md` (this file) |
+| **RHEL 9 — Open MPI + OpenBLAS** (open-source alternative) | `qe72_qepy_rhel9_openblas_skill.md` |
 | **macOS default** — Apple Accelerate | `qe72_qepy_macos_accelerate_skill.md` |
 | **Intel Mac with oneMKL** | `qe72_qepy_macos_mkl_skill.md` |
 
-Use **this skill** as the default Ubuntu path when you want an open-source stack from `apt`: **GCC/GFortran 14**, **Open MPI**, **OpenBLAS**, and **FFTW**.
+Use **this skill** as an **open-source alternative** when Intel oneAPI is unavailable (Google Colab, minimal VMs, restricted environments) or the user explicitly wants **Open MPI + OpenBLAS** from `apt` only: **GCC/GFortran 14**, **OpenBLAS**, and **FFTW**. No Intel installer required.
 
-If Intel oneAPI (Intel MPI + MKL) is installed or required, use `qe72_qepy_ubuntu_intel_skill.md` instead.
+For the standard Linux stack (Intel MPI + oneMKL), use `qe72_qepy_ubuntu_intel_skill.md`.
 
-**Agent instruction:** on Ubuntu, ask whether Intel oneAPI is available. If yes and the user wants MKL/Intel MPI, switch to the Intel skill. Otherwise use this skill. Ask for the QEpy venv name (default `venv_qepy`).
+**Agent instruction:** use this skill only when Intel oneAPI is **not** present or the user prefers open-source packages. Otherwise use the Intel Ubuntu skill. Ask for the QEpy venv name (default `venv_qepy`).
 
 ---
 
@@ -452,6 +452,7 @@ qedir="$QE_ROOT" python -m pip install --no-build-isolation --no-cache-dir -v .
 ## Design choices
 
 - **Ubuntu 24.04 LTS** is the primary target; **22.04** uses GCC 12 when GCC 14 is unavailable.
+- **Open-source fallback** — use when Intel oneAPI is unavailable (e.g. Colab) or not desired.
 - **OpenBLAS** from `libopenblas-dev` provides BLAS and LAPACK.
-- **Open MPI** from `libopenmpi-dev` is the default MPI.
-- **For Intel MPI + MKL**, use `qe72_qepy_ubuntu_intel_skill.md`.
+- **Open MPI** from `libopenmpi-dev` is the MPI implementation for this skill.
+- **Standard Linux stack (Intel MPI + MKL):** use `qe72_qepy_ubuntu_intel_skill.md`.
