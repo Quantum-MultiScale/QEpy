@@ -1,9 +1,21 @@
 # Skill: Build Quantum ESPRESSO 7.2 and QEpy on RHEL 9 with Open MPI and OpenBLAS
 
+## Bare metal / VM vs HPC cluster
+
+| Environment | Use this skill? | Notes |
+|-------------|-----------------|-------|
+| **RHEL 9 VM or workstation** (you have `sudo`, can run `dnf`) | **Yes — this file** | Full procedure with `gcc-toolset-14` and EL9 packages |
+| **HPC cluster** (no `sudo`, only `module load …`, SLURM/PBS) | **Partially — adapt §16** | Do **not** run `sudo dnf`. Load site Open MPI / GCC modules, submit via scheduler. Prefer the Intel HPC path if the site provides oneAPI/MKL modules. Site example: [`qe72_qepy_amarel_skill.md`](qe72_qepy_amarel_skill.md). See also [`qe72_qepy_rhel9_intel_skill.md` §16](qe72_qepy_rhel9_intel_skill.md#16-hpc-clusters-with-environment-modules-no-sudo). |
+
+**Agent instruction:** on shared clusters without sudo, skip all `sudo dnf` steps and use environment modules plus batch jobs only.
+
+---
+
 ## Which skill to use
 
 | Goal | Skill file |
 |------|------------|
+| **HPC cluster (no sudo, modules only)** | Site skill, e.g. [`qe72_qepy_amarel_skill.md`](qe72_qepy_amarel_skill.md) |
 | **Ubuntu — Intel MPI + oneMKL** (Linux default) | `qe72_qepy_ubuntu_intel_skill.md` |
 | **RHEL 9 — Intel MPI + oneMKL** (Linux default) | `qe72_qepy_rhel9_intel_skill.md` |
 | **Ubuntu — Open MPI + OpenBLAS** (open-source alternative) | `qe72_qepy_ubuntu_openblas_skill.md` |
@@ -53,6 +65,8 @@ x86_64
 ```
 
 Adapt package names on `aarch64` if needed.
+
+**HPC clusters:** if you do not have `sudo`, do not follow §2–§3 below. Use [`qe72_qepy_rhel9_intel_skill.md` §16](qe72_qepy_rhel9_intel_skill.md#16-hpc-clusters-with-environment-modules-no-sudo) or a site skill such as [`qe72_qepy_amarel_skill.md`](qe72_qepy_amarel_skill.md).
 
 ---
 

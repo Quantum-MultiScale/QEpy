@@ -7,7 +7,8 @@ This file guides agents (Cursor, Gemini, Copilot, etc.) that help users build **
 1. Read [`skills/README.md`](skills/README.md) and select **exactly one** skill for the user's OS and stack.
 2. **Default choices:**
    - **macOS** → `skills/qe72_qepy_macos_accelerate_skill.md`
-   - **Ubuntu / RHEL 9 / Rocky / Alma** → Intel skill (`ubuntu_intel` or `rhel9_intel`)
+   - **HPC cluster (no sudo, modules + SLURM)** → site skill, e.g. `skills/qe72_qepy_amarel_skill.md`; generic notes in `skills/qe72_qepy_rhel9_intel_skill.md` §16
+   - **RHEL 9 / Ubuntu VM with sudo** → Intel skill (`ubuntu_intel` or `rhel9_intel`)
    - **Colab / no Intel oneAPI** → `skills/qe72_qepy_ubuntu_openblas_skill.md`
 3. Use OpenBLAS Linux skills only when Intel oneAPI is **not** installed or the user explicitly wants open-source packages only.
 4. Use macOS MKL skill only when the user **explicitly** needs oneMKL on Intel Mac (archived oneAPI 2023.x).
@@ -15,8 +16,8 @@ This file guides agents (Cursor, Gemini, Copilot, etc.) that help users build **
 ## Before building
 
 - Ask the user for the **Python virtual environment name**. Default: `venv_qepy`.
-- Confirm **disk space** and **sudo/apt/brew** access if installing prerequisites.
-- On Linux, install Intel oneAPI (MKL + Intel MPI) before building unless using the OpenBLAS fallback skill.
+- Confirm **disk space** and **sudo/apt/brew/dnf** access if installing prerequisites on a **VM or workstation**. On **HPC clusters** there is usually no sudo — use `module load` and batch jobs only.
+- On Linux **VMs**, install Intel oneAPI (MKL + Intel MPI) before building unless using the OpenBLAS fallback skill. On **HPC**, use site modules — do not run the oneAPI installer.
 - On macOS, run [`skills/preflight_macos.sh`](skills/preflight_macos.sh) and follow its recommended skill.
 - On macOS, run the Homebrew detection loop from the accelerate skill and pick **one** prefix (`/opt/homebrew`, `~/homebrew`, or `/usr/local`).
 - Do not mix compiler stacks (e.g. `/usr/local` gcc with `/opt/homebrew` libraries).
@@ -41,6 +42,7 @@ Follow the chosen skill **in order**. Do not skip steps.
 - Set `VENV_NAME` (default `venv_qepy`) and `VENV_DIR="$BUILD_ROOT/$VENV_NAME"`.
 - If reusing an existing venv, source [`skills/check_qepy_venv.sh`](skills/check_qepy_venv.sh) and run `check_qepy_venv` (set `CC` and optional `TOOLCHAIN_PREFIX` / `HOMEBREW_PREFIX` on macOS).
 - Install build deps in the venv: `numpy<2`, `f90wrap==0.2.14`, `meson`, `ninja`, `packaging`.
+- **Never use conda/miniforge** for QEpy — Meson breaks on conda compiler flags. On Amarel use system `python3.9 -m venv --copies`.
 
 ## Verification checkpoints
 

@@ -14,9 +14,13 @@ What OS?
 │                    qe72_qepy_macos_mkl_skill.md          (Intel Mac + oneMKL only)
 ├── Ubuntu         → qe72_qepy_ubuntu_intel_skill.md       (default: Intel MPI + MKL)
 │                    qe72_qepy_ubuntu_openblas_skill.md   (open-source: Open MPI + OpenBLAS)
-└── RHEL 9 / Rocky / Alma 9
-                   → qe72_qepy_rhel9_intel_skill.md       (default: Intel MPI + MKL)
-                     qe72_qepy_rhel9_openblas_skill.md    (open-source: Open MPI + OpenBLAS)
+├── RHEL 9 / Rocky / Alma 9
+│   ├── VM / workstation (sudo, dnf)  → qe72_qepy_rhel9_intel_skill.md   (Intel MPI + MKL)
+│   │                                   qe72_qepy_rhel9_openblas_skill.md (Open MPI + OpenBLAS)
+│   └── HPC cluster (no sudo, modules) → site skill, e.g. qe72_qepy_amarel_skill.md
+│                                        + rhel9_intel §16 (generic HPC)
+└── Amarel (Rutgers HPC)
+                   → qe72_qepy_amarel_skill.md            (site: intel/18, SLURM, srun)
 ```
 
 **If unsure:** Accelerate on macOS; **Intel oneAPI (Intel MPI + MKL) on Linux**. Use OpenBLAS skills only when Intel oneAPI is unavailable or the user explicitly wants an open-source-only stack.
@@ -36,7 +40,7 @@ On macOS, **always set Apple Accelerate explicitly** in `configure` / `make.inc`
 
 ---
 
-## Linux (default path)
+## Linux (default path — bare metal / VM with sudo)
 
 | Situation | Skill |
 |-----------|--------|
@@ -45,9 +49,18 @@ On macOS, **always set Apple Accelerate explicitly** in `configure` / `make.inc`
 | Ubuntu, no Intel oneAPI / open-source only | [`qe72_qepy_ubuntu_openblas_skill.md`](qe72_qepy_ubuntu_openblas_skill.md) |
 | EL9, no Intel oneAPI / open-source only | [`qe72_qepy_rhel9_openblas_skill.md`](qe72_qepy_rhel9_openblas_skill.md) |
 
-Install the [Intel oneAPI Base Toolkit](https://www.intel.com/content/www/us/en/developer/tools/oneapi/base-toolkit.html) (MKL + Intel MPI) before using the Intel skills.
+Install the [Intel oneAPI Base Toolkit](https://www.intel.com/content/www/us/en/developer/tools/oneapi/base-toolkit.html) (MKL + Intel MPI) before using the Intel skills on a **machine where you can run the installer**.
 
 **Exception:** Google Colab and minimal Ubuntu VMs usually lack Intel oneAPI — use the **Ubuntu OpenBLAS** skill there unless you install oneAPI yourself.
+
+## HPC / cluster (no sudo — modules and batch jobs only)
+
+| Situation | Skill |
+|-----------|--------|
+| **Generic RHEL HPC** (no `dnf`, no installer) | [`qe72_qepy_rhel9_intel_skill.md` §16](qe72_qepy_rhel9_intel_skill.md#16-hpc-clusters-with-environment-modules-no-sudo) |
+| **Amarel (Rutgers)** | [`qe72_qepy_amarel_skill.md`](qe72_qepy_amarel_skill.md) |
+
+On HPC: use `module load`, `#SBATCH --exclusive`, and the site MPI launcher (`srun`, etc.). Do **not** run `sudo dnf` or the oneAPI `.sh` installer unless you have admin access.
 
 ---
 
@@ -113,11 +126,14 @@ The printed `qepy.__file__` path must lie inside your virtual environment (e.g. 
 |------|----------|-----|-------------|------|
 | `qe72_qepy_macos_accelerate_skill.md` | macOS | Open MPI (Homebrew) | Apple Accelerate | **macOS default** |
 | `qe72_qepy_macos_mkl_skill.md` | Intel macOS | Open MPI (Homebrew) | Intel oneMKL 2023.x | macOS + oneMKL |
-| `qe72_qepy_ubuntu_intel_skill.md` | Ubuntu | Intel MPI | oneMKL | **Linux default** |
-| `qe72_qepy_rhel9_intel_skill.md` | RHEL 9 family | Intel MPI | oneMKL | **Linux default** |
-| `qe72_qepy_ubuntu_openblas_skill.md` | Ubuntu | Open MPI | OpenBLAS | open-source alternative |
-| `qe72_qepy_rhel9_openblas_skill.md` | RHEL 9 family | Open MPI | OpenBLAS | open-source alternative |
+| `qe72_qepy_ubuntu_intel_skill.md` | Ubuntu (sudo) | Intel MPI | oneMKL | **Linux VM default** |
+| `qe72_qepy_ubuntu_openblas_skill.md` | Ubuntu (sudo) | Open MPI | OpenBLAS | open-source alternative |
+| `qe72_qepy_rhel9_intel_skill.md` | RHEL 9 family (sudo) | Intel MPI | oneMKL | **Linux VM default** |
+| `qe72_qepy_rhel9_openblas_skill.md` | RHEL 9 family (sudo) | Open MPI | OpenBLAS | open-source alternative |
+| `qe72_qepy_amarel_skill.md` | **HPC** (Amarel) | Intel MPI 2018 (`intel/18`) | MKL 18 | Rutgers; no sudo |
+| `plot_pytest_timings.py` | HPC / all | — | serial vs parallel timing plots from TSV |
 | [`common.md`](common.md) | all | — | shared clone / venv / QEpy steps |
+| [`env_amarel.sh`](env_amarel.sh) | Amarel | — | SLURM job environment |
 | [`preflight_macos.sh`](preflight_macos.sh) | macOS | — | pre-build toolchain check |
 | [`check_qepy_venv.sh`](check_qepy_venv.sh) | all | — | venv compatibility function |
 

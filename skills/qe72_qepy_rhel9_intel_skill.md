@@ -1,11 +1,23 @@
 # Skill: Build Quantum ESPRESSO 7.2 and QEpy on RHEL 9 with Intel MPI and MKL
 
+## Bare metal / VM vs HPC cluster
+
+| Environment | Use this skill? | Notes |
+|-------------|-----------------|-------|
+| **RHEL 9 VM or workstation** (you have `sudo`, can run `dnf` and the oneAPI installer) | **Yes — this file** | Full procedure below with `gcc-toolset-14`, `dnf`, and `/opt/intel/oneapi` |
+| **HPC cluster** (no `sudo`, only `module load …`, SLURM/PBS) | **No — use the site skill** | Do **not** run `sudo dnf` or the oneAPI installer. Load site modules, submit builds via the scheduler, and use the cluster launcher (`srun`, `mpirun`, etc.) documented for that system. Example: [`qe72_qepy_amarel_skill.md`](qe72_qepy_amarel_skill.md) (Rutgers Amarel). Generic HPC notes: [§16 HPC clusters](#16-hpc-clusters-with-environment-modules-no-sudo). |
+
+**Agent instruction:** if the user is on a shared cluster, SSH login node, or says they cannot use `sudo`, treat this as **HPC** and follow §16 plus any site-specific skill — not the `dnf`/installer sections.
+
+---
+
 ## Which skill to use
 
 | Goal | Skill file |
 |------|------------|
+| **HPC cluster (no sudo, modules only)** | Site skill, e.g. [`qe72_qepy_amarel_skill.md`](qe72_qepy_amarel_skill.md) |
 | **Ubuntu — Intel MPI + oneMKL** (Linux default) | `qe72_qepy_ubuntu_intel_skill.md` |
-| **RHEL 9 — Intel MPI + oneMKL** (Linux default) | `qe72_qepy_rhel9_intel_skill.md` (this file) |
+| **RHEL 9 — Intel MPI + oneMKL** (Linux default, **sudo required**) | `qe72_qepy_rhel9_intel_skill.md` (this file) |
 | **Ubuntu — Open MPI + OpenBLAS** (open-source alternative) | `qe72_qepy_ubuntu_openblas_skill.md` |
 | **RHEL 9 — Open MPI + OpenBLAS** (open-source alternative) | `qe72_qepy_rhel9_openblas_skill.md` |
 | **macOS default** — Apple Accelerate | `qe72_qepy_macos_accelerate_skill.md` |
@@ -57,7 +69,7 @@ x86_64
 
 This procedure is written for `x86_64`. Adapt package names if you are on `aarch64` (Intel oneAPI component availability may differ).
 
-Check for root/sudo access — system packages and the Intel installer require it.
+Check for root/sudo access — system packages and the Intel installer require it. **On HPC clusters you typically do not have sudo**; use §16 and a site skill instead of this section.
 
 ---
 
@@ -783,24 +795,84 @@ At least some QEpy shared libraries should show oneMKL dependencies.
 
 ---
 
-# 16. HPC clusters with environment modules
+# 16. HPC clusters with environment modules (no sudo)
 
-Many RHEL-based HPC systems provide oneAPI through `module`:
+Use this section when the machine is a **shared HPC cluster**: no root, no `dnf install`, no oneAPI `.sh` installer — only **pre-loaded environment modules** and **batch jobs** (SLURM, PBS, LSF, etc.).
+
+## What changes on HPC
+
+| Bare metal (§1–15) | HPC cluster |
+|--------------------|-------------|
+| `sudo dnf install …` | **`module load`** compiler, MPI, MKL (names vary by site) |
+| `./l_BaseKit_p_*.sh` installer | Site provides Intel/oneAPI or legacy Intel Parallel Studio modules |
+| Interactive build on login node | **Submit builds to compute nodes** via `#SBATCH` / `sbatch` |
+| `mpirun` / direct execution | Often **`srun`** (SLURM) or site wrapper; verify on a 1-rank smoke test first |
+| `python3-devel` on same node | Compute nodes may lack headers — copy includes or build QEpy on head node |
+| `venv_qepy` default | Use **`python -m venv --copies`**; **never conda** for QEpy (Meson breaks) |
+| Shared nodes | Prefer **`#SBATCH --exclusive`** when allowed |
+
+## Module discovery
 
 ```bash
-module avail oneapi
-module avail gcc-toolset
-module load gcc-toolset/14
-module load oneapi
+module avail 2>&1 | grep -iE 'intel|oneapi|gcc|mkl|mpi|openmpi'
+module spider intel
+```
+
+Common patterns (names differ by site):
+
+```bash
+module load intel/18.0.5          # legacy Parallel Studio (MKL + Intel MPI)
+# or
+module load gcc-toolset/14 oneapi # EL9 + community oneAPI module tree
 ```
 
 After loading modules:
 
 1. Re-export `CC`, `FC`, `I_MPI_CC`, `I_MPI_FC`, `MKLROOT`, and `MKLLIB`.
 2. Run `check_qepy_venv`.
-3. Confirm `which mpif90` points to Intel MPI, not Open MPI or MPICH.
+3. Confirm `which mpif90` or `which mpiifort` points to the intended MPI — not a mixed stack.
+4. Test **`srun -n 1 pw.x`** (or site launcher) before multi-rank jobs.
 
 Do not mix Intel MPI with Open MPI libraries in the same build.
+
+## SLURM batch template (exclusive)
+
+```bash
+#!/bin/bash
+#SBATCH --partition=YOUR_PARTITION
+#SBATCH --exclusive
+#SBATCH --nodes=1
+#SBATCH --ntasks=8
+#SBATCH --cpus-per-task=1
+#SBATCH --mem=0
+#SBATCH --time=03:00:00
+
+source /etc/profile.d/modules.sh
+module load intel/18.0.5   # site-specific
+
+export BUILD_ROOT=$HOME/qe_build
+export qedir=$BUILD_ROOT/q-e
+export PATH=$BUILD_ROOT/venv_py39/bin:$PATH
+export I_MPI_CC=gcc I_MPI_FC=ifort
+export OMP_NUM_THREADS=1 MKL_NUM_THREADS=1
+ulimit -s unlimited
+
+# build or test on compute node — not the login node
+```
+
+## QEpy pytest on HPC
+
+- **Serial (validated on many legacy Intel-MPI clusters):** `srun -n 1 python -m pytest -v test_pwscf.py test_readfile.py`
+- **Parallel (`pytest --with-mpi`, n≥2):** requires a working PMI/MPI stack on compute nodes. Older Intel MPI (2018) + SLURM may fail at `MPI_Init` / `PMI_KVS_Get`; use serial tests until the site upgrades MPI or documents a working launcher.
+- Tests already guard user-visible output with `if driver.is_root:`; if parallel pytest works but lines appear twice, that is usually **both ranks running the pytest collector** — use `pytest --with-mpi` (not plain `srun -n 2 pytest` without it).
+
+## Site-specific skills
+
+| Cluster | Skill |
+|---------|--------|
+| Rutgers Amarel | [`qe72_qepy_amarel_skill.md`](qe72_qepy_amarel_skill.md) |
+
+If no site skill exists, document the loaded modules, launcher, and any `make.inc` fixes in the user's project README before running a full build.
 
 ---
 
