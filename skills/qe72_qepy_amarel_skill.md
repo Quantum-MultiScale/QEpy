@@ -335,85 +335,31 @@ python -m pytest -v test_pwscf.py test_readfile.py
 | W90 / `configure-w90` errors | Missing symlink | `ln -sf wannier90-3.1.0 W90` before `make w90` |
 | QEpy + conda | Meson/compiler flag conflicts | **Never** use miniforge/conda for QEpy |
 | Slow/hung jobs on shared nodes | Noisy neighbors | `#SBATCH --exclusive`; avoid `mix` in `sinfo` |
-| `srun -n 2` / `PMI_KVS_Get -1` / rc=15 | Intel MPI 2018 PMI on SLURM | Use **`srun -n 1`**; ask RCIC about newer MPI module |
-| Duplicate `collecting ...` lines under `-n 2` | Both ranks run pytest collector | Use `--with-mpi`; fix MPI first — tests use `is_root` for QE output |
+| `srun -n 2` / `PMI_KVS_Get -1` / rc=15 | SLURM `MpiDefault=none` without PMI | Add **`--mpi=pmi2`** to srun |
+| Duplicate `collecting ...` lines under parallel | Both ranks run pytest collector | Expected with `--with-mpi`; use `if driver.is_root` for QE output |
 
 ---
 
-# 13. Pytest timing benchmark (serial vs parallel)
+# 13. Testing on Amarel
 
-Scripts on the cluster under `~/qe_build/`:
+Run inside an **exclusive** SLURM job on `main-redhat` after sourcing `env_amarel.sh`.
 
-| File | Purpose |
-|------|---------|
-| `pytest_timing_strict.sh` | **Recommended:** median of 3 repeats, `/usr/bin/time` exec, one node |
-| `pytest-timing-strict.tsv` | Strict results (exec + pytest medians) |
-| `pytest_pertest_timing.sh` | Quick single-shot per-test benchmark |
-| `pytest-timing-pertest.tsv` | Quick results TSV |
-| `plot_pytest_timings.py` | Plot script (auto-detects strict TSV) |
-
-Submit strict benchmark:
+**Serial:**
 
 ```bash
-sbatch ~/qe_build/pytest_timing_strict.sh
+cd "$BUILD_ROOT/QEpy/examples/test"
+srun -n 1 --export=ALL python -m pytest -v --tb=line test_pwscf.py test_readfile.py
 ```
 
-Plot:
+**Parallel (2 MPI ranks):**
 
 ```bash
-python skills/plot_pytest_timings.py pytest-timing-strict.tsv -o pytest_timings_strict.png
+srun --mpi=pmi2 -n 2 --export=ALL python -m pytest --with-mpi -v --tb=line test_pwscf.py test_readfile.py
 ```
 
-### Methodology (strict, job **57845752**)
+Do **not** use plain `srun -n 2` (no PMI) or `mpirun`/`mpiexec` on this cluster.
 
-| Property | Setting |
-|----------|---------|
-| Node | **halk0151** only (all runs in one job) |
-| Allocation | `#SBATCH --exclusive` |
-| Queue wait | **Excluded** — timers start inside the batch script |
-| Exec time | **`/usr/bin/time`** around each `srun` (includes srun step + test; excludes queue) |
-| Pytest time | pytest `passed in Xs` (test body only) |
-| Repeats | **3 per case → median** |
-| Suite runs | **One `srun`** per mode for all 4 tests together |
-
-Launchers: serial `srun -n 1`, parallel `srun --mpi=pmi2 -n 2`.
-
-## Results — strict median (halk0151, job **57845752**)
-
-### Per-test (median of 3)
-
-| Test | Serial exec / pytest | Parallel exec / pytest |
-|------|----------------------|------------------------|
-| `test_scf` | 2.52 s / 2.19 s | 1.99 s / 1.53 s |
-| `test_0_scf` | 2.62 s / 2.25 s | 2.24 s / 1.53 s |
-| `test_1_read` | 0.92 s / 0.58 s | 1.13 s / 0.69 s |
-| `test_2_read_pw` | 0.93 s / 0.59 s | 1.11 s / 0.65 s |
-
-### Full suite — one srun (median of 3)
-
-| Mode | Exec median | Pytest median |
-|------|-------------|---------------|
-| Serial (`-n 1`) | **5.47 s** | **5.15 s** |
-| Parallel (`--mpi=pmi2 -n 2`) | **3.55 s** | **2.69 s** |
-
-Plot: `skills/pytest_timings_strict.png`.
-
-Older single-shot numbers (job 57845645) mixed `$SECONDS` wall clock and showed a **9.30 s** serial outlier on first cold run — not used for comparisons.
-
-**Serial QEpy validation is production-ready on Amarel.** Multi-rank MPI (n≥2) is broken with Intel MPI 2018 + SLURM PMI on `main-redhat`; this affects plain `pw.x` as well as QEpy.
-
-## Duplicate output in parallel pytest attempts
-
-When `srun -n 2 pytest --with-mpi` gets past collection, pytest-mpi may show **duplicated collector lines** (e.g. two `collecting ... collected 1 item` lines, or merged `test_pwscf.py::test_scf test_pwscf.py::test_scf`) because **both MPI ranks participate in collection** before rank filtering. This is pytest-mpi behaviour, not missing `is_root` guards in the tests (QE driver prints already use `if driver.is_root:`).
-
-On Amarel today parallel tests **never reach completion** — they fail at `PMI_KVS_Get` / exit code 15 — so duplicate QE output is not the blocking issue; **fixing the MPI/SLURM stack is**.
-
-## Recommendation (next steps)
-
-1. **Multi-rank jobs:** always **`srun --mpi=pmi2 -n N`** (Amarel SLURM `MpiDefault=none`). Plain `srun -n 2` and `mpirun`/`mpiexec` are wrong here.
-2. **Serial-only smoke tests:** `srun -n 1 python -m pytest …` still works.
-3. **Optional:** `pip install mpi4py` in `venv_py39` to silence pytest-mpi “Unable to import mpi4py” (tests pass without it).
-4. **Do not** switch to conda/miniforge for QEpy on compute nodes.
+Optional: install `mpi4py` in the venv to silence pytest-mpi warnings (tests pass without it).
 
 ---
 

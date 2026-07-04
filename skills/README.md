@@ -131,7 +131,6 @@ The printed `qepy.__file__` path must lie inside your virtual environment (e.g. 
 | `qe72_qepy_rhel9_intel_skill.md` | RHEL 9 family (sudo) | Intel MPI | oneMKL | **Linux VM default** |
 | `qe72_qepy_rhel9_openblas_skill.md` | RHEL 9 family (sudo) | Open MPI | OpenBLAS | open-source alternative |
 | `qe72_qepy_amarel_skill.md` | **HPC** (Amarel) | Intel MPI 2018 (`intel/18`) | MKL 18 | Rutgers; no sudo |
-| `plot_pytest_timings.py` | HPC / all | — | serial vs parallel timing plots from TSV |
 | [`common.md`](common.md) | all | — | shared clone / venv / QEpy steps |
 | [`env_amarel.sh`](env_amarel.sh) | Amarel | — | SLURM job environment |
 | [`preflight_macos.sh`](preflight_macos.sh) | macOS | — | pre-build toolchain check |
