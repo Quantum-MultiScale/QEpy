@@ -80,8 +80,6 @@ If the user only wants a quick install **without** building QE locally:
 python -m pip install qepy
 ```
 
-See [`README.md`](README.md). That path does not use these skills.
-
 ## Success
 
 The build is complete when [`skills/README.md`](skills/README.md) success criteria all pass.
