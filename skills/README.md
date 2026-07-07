@@ -144,6 +144,8 @@ The printed `qepy.__file__` path must lie inside your virtual environment (e.g. 
 - Compiling QE **without `-fPIC`** (QEpy links QE objects into shared libraries).
 - Testing `import qepy` **inside the QEpy repository** (local source shadows the install).
 - Mixing Homebrew prefixes on macOS (`/usr/local` vs `/opt/homebrew`).
+- Building QEpy with Apple's bundled `make` (3.81) instead of Homebrew's `gmake` (4.x) — causes a jobserver-pipe race (`read jobs pipe: Resource temporarily unavailable`).
+- Forgetting to `source "$BUILD_ROOT/env.sh"` (macOS) in a new shell before `make` — `mpif90` may compile some QE files with a different GCC than `gfortran-14`, producing incompatible `.mod` files.
 - Mixing OpenBLAS and MKL in the same `make.inc`.
 - Using GCC 15 with QE 7.2 (MBD `f_c_string` conflict — use GCC 14).
 

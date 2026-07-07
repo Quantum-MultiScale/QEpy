@@ -116,6 +116,48 @@ if [ -n "$SELECTED_PREFIX" ]; then
       echo "  export OMPI_CC=$BREW_BIN/gcc-14"
       echo "  export OMPI_FC=$BREW_BIN/gfortran-14"
     fi
+
+    mpif90_fc="$(OMPI_FC="$BREW_BIN/gfortran-14" "$BREW_BIN/mpif90" -show 2>/dev/null | awk '{print $1}' || true)"
+    if [ -n "$mpif90_fc" ] && [ "$mpif90_fc" = "$BREW_BIN/gfortran-14" ]; then
+      ok "mpif90 -show resolves to gfortran-14 with OMPI_FC set"
+    else
+      warn "mpif90 does not resolve to gfortran-14 even with OMPI_FC (got: ${mpif90_fc:-unknown})"
+      warn "Source env.sh before every make step; consider rebuilding QE after fixing."
+    fi
+
+    wrapper_data=""
+    for f in "$SELECTED_PREFIX/opt/open-mpi/share/openmpi/mpifort-wrapper-data.txt" \
+             "$SELECTED_PREFIX/share/openmpi/mpifort-wrapper-data.txt" \
+             "$SELECTED_PREFIX/Cellar/open-mpi"/*/share/openmpi/mpifort-wrapper-data.txt; do
+      [ -f "$f" ] && wrapper_data="$f" && break
+    done
+    if [ -n "$wrapper_data" ]; then
+      if grep -q 'compiler:fortran:absolute' "$wrapper_data" 2>/dev/null; then
+        baked="$(grep 'compiler:fortran:absolute' "$wrapper_data" 2>/dev/null | head -1 | sed 's/.*absolute://' || true)"
+        if [ -n "$baked" ] && ! echo "$baked" | grep -q 'gfortran-14'; then
+          warn "Open MPI baked-in Fortran compiler: $baked"
+          warn "Always export OMPI_FC=$BREW_BIN/gfortran-14 and source env.sh before make"
+          echo "  cat $wrapper_data | grep absolute"
+        else
+          ok "Open MPI wrapper default includes gfortran-14"
+        fi
+      else
+        ok "Open MPI wrapper uses PATH for gfortran — still set OMPI_FC and source env.sh before make"
+      fi
+    fi
+  fi
+
+  if [ -x "$BREW_BIN/gmake" ]; then
+    sys_make_ver="$(/usr/bin/make --version 2>/dev/null | head -1 || true)"
+    gmake_ver="$("$BREW_BIN/gmake" --version 2>/dev/null | head -1 || true)"
+    if [ -n "$sys_make_ver" ] && [ "$sys_make_ver" != "$gmake_ver" ]; then
+      ok "gmake available ($gmake_ver)"
+      warn "Use gmake via PATH shim when building QEpy (Apple make: $sys_make_ver)"
+    else
+      ok "gmake present"
+    fi
+  else
+    warn "gmake missing — brew install make (needed for QEpy build; installed as gmake)"
   fi
 fi
 
@@ -143,6 +185,7 @@ export PATH="\$BREW_BIN:\$PATH"
 export PYTHON="\$BREW_OPT/python@3.10/bin/python3.10"
 export BUILD_ROOT="\${BUILD_ROOT:-\$HOME/qe_build}"
 export VENV_NAME="\${VENV_NAME:-venv_qepy}"
+# After first configure: source "\$BUILD_ROOT/env.sh" before every make / QEpy build
 EOF
 fi
 

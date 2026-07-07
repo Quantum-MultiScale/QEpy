@@ -101,6 +101,8 @@ ninja --version
 
 Platform skill must be followed for `configure` and `make.inc` **before** this step.
 
+**macOS:** if you wrote `$BUILD_ROOT/env.sh` in the platform skill (§7), run `source "$BUILD_ROOT/env.sh"` at the start of this step — and in **every new shell session** before `make`. Compiler exports do not persist across terminals.
+
 ```bash
 cd "$QE_ROOT"
 
@@ -138,6 +140,8 @@ ls "$QE_ROOT/CPV/src/"*.o | head -3
 ---
 
 ## Build and install QEpy
+
+**macOS:** `source "$BUILD_ROOT/env.sh"` first; add the `gmake` → `make` shim before `pip install` (see `qe72_qepy_macos_accelerate_skill.md` §11).
 
 ```bash
 source "$VENV_DIR/bin/activate"

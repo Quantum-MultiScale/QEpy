@@ -159,6 +159,8 @@ Then install packages:
 brew install git python@3.10 gcc@14 open-mpi fftw make
 ```
 
+Homebrew installs GNU Make 4.x as **`gmake`**, not `make` (Apple's bundled `/usr/bin/make` is GNU Make 3.81). The QEpy build needs `gmake` — see §11.
+
 ### Intel Homebrew (x86_64)
 
 On Intel Macs, or Apple Silicon Macs using Rosetta Homebrew:
@@ -167,6 +169,8 @@ On Intel Macs, or Apple Silicon Macs using Rosetta Homebrew:
 eval "$(/usr/local/bin/brew shellenv)"
 brew install git python@3.10 gcc@14 open-mpi fftw make
 ```
+
+Homebrew installs GNU Make 4.x as **`gmake`**, not `make` (Apple's bundled `/usr/bin/make` is GNU Make 3.81). The QEpy build needs `gmake` — see §11.
 
 On Apple Silicon, confirm you are using the intended brew:
 
@@ -495,6 +499,35 @@ Do not mix GFortran 14 and GFortran 15 module files or runtime libraries.
 
 Do not mix compilers from different Homebrew installations.
 
+### Persist the toolchain (`env.sh`)
+
+Exports above do **not** survive a new terminal tab, a later script step, or separate tool-call shells. Write them once and **source** before every QE and QEpy build step:
+
+```bash
+mkdir -p "$BUILD_ROOT/make_shim"
+ln -sf "$BREW_BIN/gfortran-14" "$BUILD_ROOT/make_shim/gfortran"
+ln -sf "$BREW_BIN/gcc-14"      "$BUILD_ROOT/make_shim/gcc"
+
+cat > "$BUILD_ROOT/env.sh" << EOF
+#!/usr/bin/env bash
+eval "\$("$HOMEBREW_PREFIX/bin/brew" shellenv)"
+export HOMEBREW_PREFIX="$HOMEBREW_PREFIX"
+export BREW_BIN="\$HOMEBREW_PREFIX/bin"
+export CC="\$BREW_BIN/gcc-14"
+export FC="\$BREW_BIN/gfortran-14"
+export F77="\$FC"
+export F90="\$FC"
+export OMPI_CC="\$CC"
+export OMPI_FC="\$FC"
+export PATH="$BUILD_ROOT/make_shim:\$BREW_BIN:\$PATH"
+EOF
+chmod +x "$BUILD_ROOT/env.sh"
+```
+
+Open MPI's `mpif90` wrapper bakes in an **absolute** compiler path at install time (see `.../share/openmpi/mpifort-wrapper-data.txt`). If Open MPI was installed before `gcc@14`, it may still point at another GCC. `OMPI_FC` overrides this **only when set in the environment of every `make` invocation** — sourcing `env.sh` is required.
+
+The `gcc` / `gfortran` shims are a backstop for tools that resolve via `PATH`; they do **not** replace `OMPI_FC` for `mpif90`.
+
 ---
 
 # 8. Configure Quantum ESPRESSO
@@ -694,9 +727,12 @@ rather than mixing LLVM and GCC paths.
 
 # 10. Build all of Quantum ESPRESSO
 
+**New shell session?** Re-run `source "$BUILD_ROOT/env.sh"` before continuing — compiler exports from §7 do not persist across sessions.
+
 Before building, clean old objects if this is not a fresh clone:
 
 ```bash
+source "$BUILD_ROOT/env.sh"
 cd "$QE_ROOT"
 
 make clean || true
@@ -781,6 +817,8 @@ For the Accelerate configuration, this second command should normally produce no
 
 # 11. Build QEpy
 
+**New shell session?** Re-run `source "$BUILD_ROOT/env.sh"` before continuing.
+
 Activate the dedicated environment:
 
 ```bash
@@ -793,16 +831,16 @@ Re-run compatibility checks if the environment was created earlier in the workfl
 check_qepy_venv
 ```
 
-Reassert compiler consistency:
+Reassert compiler consistency and set up the **make** shim (QEpy only — not needed for the QE `make all` step):
 
 ```bash
-export HOMEBREW_PREFIX="$(brew --prefix)"
-export BREW_BIN="$HOMEBREW_PREFIX/bin"
-export CC="$BREW_BIN/gcc-14"
-export FC="$BREW_BIN/gfortran-14"
-export OMPI_CC="$CC"
-export OMPI_FC="$FC"
-export PATH="$BREW_BIN:$PATH"
+source "$BUILD_ROOT/env.sh"
+
+# Homebrew GNU Make 4.x is installed as gmake; Apple's /usr/bin/make is 3.81 and
+# breaks QEpy's nested make → meson → ninja jobserver (Resource temporarily unavailable).
+ln -sf "$BREW_BIN/gmake" "$BUILD_ROOT/make_shim/make"
+export PATH="$BUILD_ROOT/make_shim:$BREW_BIN:$PATH"
+which make && make --version | head -1
 ```
 
 Enter the QEpy repository:
@@ -1005,7 +1043,42 @@ Typical symptom: a collision involving `f_c_string`.
 
 Cause: GCC 15 introduced an intrinsic with that name, while the bundled QE 7.2 MBD source defines its own routine with the same name.
 
-Fix: use GCC/GFortran 14 consistently.
+Fix: use GCC/GFortran 14 consistently. If Open MPI was installed when another GCC was default, verify `mpifort-wrapper-data.txt` and always `source "$BUILD_ROOT/env.sh"` before `make`.
+
+---
+
+## QEpy build: `read jobs pipe: Resource temporarily unavailable`
+
+Typical output:
+
+```text
+ninja: warning: Jobserver 'pipe' mode detected...
+make[1]: *** read jobs pipe: Resource temporarily unavailable.  Stop.
+make: *** [qepy_fftxlib] Error 1
+```
+
+Cause: QEpy's build chains `make` → `meson` → `ninja` with GNU Make's jobserver. Apple's bundled `make` (3.81) mishandles nested parallel jobs.
+
+Fix: use Homebrew `gmake` via the §11 PATH shim (`ln -sf "$BREW_BIN/gmake" "$BUILD_ROOT/make_shim/make"`).
+
+---
+
+## Mixed GCC `.mod` files (`created by a different version of GNU Fortran`)
+
+Typical output:
+
+```text
+Fatal Error: Cannot read module file '.../laxlib_processors_grid.mod'
+opened at (1), because it was created by a different version of GNU Fortran
+```
+
+Cause: some QE sources compiled via `mpif90` used a different `gfortran` than direct `$FC` calls — often because `OMPI_FC` was not set in a new shell, or Open MPI's wrapper still points at an older baked-in compiler path.
+
+Fix:
+
+1. `source "$BUILD_ROOT/env.sh"` before **every** `make` step.
+2. Clean and rebuild QE: `make clean`; delete `*.o`, `*.mod`, `*.a`; `make all`.
+3. Check wrapper data: `grep absolute "$(brew --prefix open-mpi)/share/openmpi/mpifort-wrapper-data.txt"`.
 
 ---
 
@@ -1193,14 +1266,25 @@ python -m pip install \
   ninja \
   packaging
 
-# Compiler environment
-export CC="$BREW_BIN/gcc-14"
-export FC="$BREW_BIN/gfortran-14"
-export F77="$FC"
-export F90="$FC"
-export OMPI_CC="$CC"
-export OMPI_FC="$FC"
-export PATH="$BREW_BIN:$PATH"
+# Compiler environment (persisted for multi-step builds)
+mkdir -p "$BUILD_ROOT/make_shim"
+ln -sf "$BREW_BIN/gfortran-14" "$BUILD_ROOT/make_shim/gfortran"
+ln -sf "$BREW_BIN/gcc-14"      "$BUILD_ROOT/make_shim/gcc"
+cat > "$BUILD_ROOT/env.sh" << EOF
+#!/usr/bin/env bash
+eval "\$("$HOMEBREW_PREFIX/bin/brew" shellenv)"
+export HOMEBREW_PREFIX="$HOMEBREW_PREFIX"
+export BREW_BIN="\$HOMEBREW_PREFIX/bin"
+export CC="\$BREW_BIN/gcc-14"
+export FC="\$BREW_BIN/gfortran-14"
+export F77="\$FC"
+export F90="\$FC"
+export OMPI_CC="\$CC"
+export OMPI_FC="\$FC"
+export PATH="$BUILD_ROOT/make_shim:\$BREW_BIN:\$PATH"
+EOF
+chmod +x "$BUILD_ROOT/env.sh"
+source "$BUILD_ROOT/env.sh"
 
 # Configure QE
 cd "$QE_ROOT"
@@ -1226,11 +1310,15 @@ cd "$QE_ROOT"
 # Remove any -I.../llvm or -L.../llvm entries.
 
 # Build all QE components
+source "$BUILD_ROOT/env.sh"
 make all
 
-# Build QEpy
+# Build QEpy (gmake shim — Homebrew make is gmake, not make)
 cd "$QEPY_ROOT"
 rm -rf build dist qepy.egg-info
+source "$BUILD_ROOT/env.sh"
+ln -sf "$BREW_BIN/gmake" "$BUILD_ROOT/make_shim/make"
+export PATH="$BUILD_ROOT/make_shim:$BREW_BIN:$PATH"
 
 qedir="$QE_ROOT" \
 python -m pip install \
