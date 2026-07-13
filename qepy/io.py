@@ -471,9 +471,11 @@ class QEInput(object):
             if matches:
                 return matches[0]
 
-            raise KSPPNotFoundError(
-                f"No pseudopotential for {symbol} in {self.listing_reldir}"
-            )
+            if allow_remote:
+                raise KSPPNotFoundError(
+                    f"No pseudopotential for {symbol} in {self.listing_reldir}"
+                )
+            return None
 
         def _list_local_files(self) -> frozenset[str]:
             names = set()

@@ -62,11 +62,18 @@ test = [
 	"pytest",
 	"pytest-cov",
 	"pytest-mpi",
+	"pytest-xdist",
 	"ase"
 ]
 all = [
 	"mpi4py",
 	"dftpy",
+]
+
+[tool.pytest.ini_options]
+addopts = "-ra"
+filterwarnings = [
+	"error::pytest.PytestUnraisableExceptionWarning",
 ]
 
 [project.urls]
