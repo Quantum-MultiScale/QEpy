@@ -101,7 +101,19 @@ class Driver(metaclass=QEpyLibs):
     def __init__(self, inputfile = None, comm = None, ldescf = True, iterative = False,
              task = 'scf', embed = None, prefix = None, outdir = None, logfile = None,
              qe_options = None, prog = 'pw', progress = False, atoms = None, needwf = True,
+             kspp_auto = False, kspp_table = None, kspp_xc = None, kspp_accuracy = None,
+             kspp_format = None, kspp_manual = None, kspp_cache_dir = None,
+             kspp_search_paths = None, kspp_offline = False, kspp_resolver = None,
              **kwargs):
+        if isinstance(inputfile, QEInput):
+            pwin = inputfile
+            inputfile = pwin.filename
+            qe_options = qe_options if qe_options is not None else pwin.qe_options
+            atoms = atoms if atoms is not None else pwin.atoms
+            prog = prog or pwin.prog
+            self.qeinput = pwin
+        else:
+            self.qeinput = QEInput()
         self.task = task
         self.embed = embed
         self.comm = comm
@@ -115,6 +127,18 @@ class Driver(metaclass=QEpyLibs):
         self.progress = progress
         self.atoms = atoms
         self.needwf = needwf
+        self.kspp_options = {
+            'kspp_auto': kspp_auto,
+            'kspp_table': kspp_table,
+            'kspp_xc': kspp_xc,
+            'kspp_accuracy': kspp_accuracy,
+            'kspp_format': kspp_format,
+            'kspp_manual': kspp_manual,
+            'kspp_cache_dir': kspp_cache_dir,
+            'kspp_search_paths': kspp_search_paths,
+            'kspp_offline': kspp_offline,
+            'kspp_resolver': kspp_resolver,
+        }
         #
         if embed is None:
             self.embed.ldescf = ldescf
@@ -123,7 +147,8 @@ class Driver(metaclass=QEpyLibs):
         #
         self.comm = comm
         self.qepy = qepy
-        self.qeinput = QEInput()
+        if self.qeinput.kspp_enabled and self.atoms is not None:
+            self.qeinput.ksppresolver(apply=True)
         #
         self.driver_initialize()
 
@@ -249,7 +274,15 @@ class Driver(metaclass=QEpyLibs):
         #
         if qe_options :
             inputfile, basefile = 'input_tmp.in', inputfile
-            self.qeinput.write_qe_input(inputfile, atoms = self.atoms, basefile=basefile, qe_options=qe_options, prog=prog)
+            write_kwargs = {} if self.qeinput.kspp_enabled else self.kspp_options
+            self.qeinput.write_qe_input(
+                inputfile,
+                atoms=self.atoms,
+                basefile=basefile,
+                qe_options=qe_options,
+                prog=prog,
+                **write_kwargs,
+            )
         #
         if task == 'optical' :
             self.tddft_initialize(inputfile=inputfile, commf = commf, **kwargs)

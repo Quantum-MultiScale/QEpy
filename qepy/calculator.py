@@ -85,7 +85,11 @@ class QEpyCalculator(Calculator):
 
     def __init__(self, atoms = None, inputfile = None, from_file = False, wrap = False, extrapolation = True,
             ase_espresso = None, qe_options = None, comm = None, ldescf = False, iterative = False,
-            task = 'scf', embed = None, prefix = None, outdir = None, logfile = None, prog = 'pw', **kwargs):
+            task = 'scf', embed = None, prefix = None, outdir = None, logfile = None, prog = 'pw',
+            kspp_auto = False, kspp_table = None, kspp_xc = None, kspp_accuracy = None,
+            kspp_format = None, kspp_manual = None, kspp_cache_dir = None,
+            kspp_search_paths = None, kspp_offline = False, kspp_resolver = None,
+            **kwargs):
         Calculator.__init__(self, atoms = atoms, **kwargs)
         #
         self.lstart = False
@@ -124,6 +128,18 @@ class QEpyCalculator(Calculator):
                 'embed' : embed,
                 'logfile' : logfile,
                 }
+        self.kspp_options = {
+            'kspp_auto': kspp_auto,
+            'kspp_table': kspp_table,
+            'kspp_xc': kspp_xc,
+            'kspp_accuracy': kspp_accuracy,
+            'kspp_format': kspp_format,
+            'kspp_manual': kspp_manual,
+            'kspp_cache_dir': kspp_cache_dir,
+            'kspp_search_paths': kspp_search_paths,
+            'kspp_offline': kspp_offline,
+            'kspp_resolver': kspp_resolver,
+        }
         self.qepy_options.update(kwargs)
         #
         self.parameters['qe_options'] = qe_options
@@ -171,8 +187,14 @@ class QEpyCalculator(Calculator):
             if self.ase_espresso :
                 ase.io.write(self.inputfile, atoms, format = 'espresso-in', **self.ase_espresso)
             else :
-                self.qeinput.write_qe_input(self.inputfile, atoms=atoms, basefile=self.basefile,
-                        qe_options=self.qe_options, prog=self.prog)
+                self.qeinput.write_qe_input(
+                    self.inputfile,
+                    atoms=atoms,
+                    basefile=self.basefile,
+                    qe_options=self.qe_options,
+                    prog=self.prog,
+                    **self.kspp_options,
+                )
         self.driver = Driver(self.inputfile, **self.qepy_options)
         self.lstart = True
 
