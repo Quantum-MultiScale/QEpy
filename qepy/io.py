@@ -21,6 +21,33 @@ KSPP_DEFAULT_XC = "PBE"
 KSPP_DEFAULT_ACCURACY = "standard"
 KSPP_DEFAULT_FORMAT = "upf"
 
+KSPP_CONFIG_KEYS = frozenset({
+    "manual",
+    "table",
+    "xc",
+    "accuracy",
+    "fmt",
+    "cache_dir",
+    "search_paths",
+    "offline",
+    "update_ecuts",
+})
+
+
+def pop_kspp_config(kwargs: dict) -> dict:
+    """Remove KSPP configuration keys from *kwargs* and return them."""
+    config = {}
+    for key in list(kwargs):
+        if key not in KSPP_CONFIG_KEYS:
+            continue
+        value = kwargs.pop(key)
+        if key in {"offline", "update_ecuts"}:
+            if value:
+                config[key] = True
+        elif value is not None and value is not False:
+            config[key] = value
+    return config
+
 
 class KSPPNotFoundError(FileNotFoundError):
     """Raised when no KSPP pseudopotential can be resolved for an element."""
@@ -601,21 +628,6 @@ class QEInput(object):
         if prog == 'pw' and atoms is not None:
             if self._kspp_enabled:
                 self.ksppresolver(symbols=atoms.get_chemical_symbols(), apply=True)
-            elif kwargs.get('kspp_auto'):
-                symbols = _kspp_unique_symbols(atoms.get_chemical_symbols())
-                self.apply_kspp(
-                    qe_options,
-                    symbols,
-                    resolver=kwargs.get('kspp_resolver'),
-                    manual=kwargs.get('kspp_manual'),
-                    table=kwargs.get('kspp_table'),
-                    xc=kwargs.get('kspp_xc'),
-                    accuracy=kwargs.get('kspp_accuracy'),
-                    fmt=kwargs.get('kspp_format'),
-                    cache_dir=kwargs.get('kspp_cache_dir'),
-                    search_paths=kwargs.get('kspp_search_paths'),
-                    offline=kwargs.get('kspp_offline', False),
-                )
         if prog == 'pw' :
             if atoms is not None :
                 qe_options = self.update_atoms(atoms, qe_options, prog=prog, **kwargs)

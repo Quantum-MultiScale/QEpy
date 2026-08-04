@@ -91,6 +91,24 @@ def test_apply_kspp_updates_ecuts(al_atoms, kspp_root, kspp_cache_dir):
     assert qe_options["&system"]["ecutrho"] == pytest.approx(150.0)
 
 
+def test_driver_ksppresolver(al_atoms, kspp_offline_kwargs):
+    from unittest.mock import patch
+
+    from qepy.driver import Driver
+
+    qe_options = {"&system": {}}
+    with patch.object(Driver, "driver_initialize"):
+        driver = Driver(
+            qe_options=qe_options,
+            atoms=al_atoms,
+            ksppresolver=True,
+            **kspp_offline_kwargs(),
+        )
+    assert driver.qeinput.kspp_enabled
+    assert "atomic_species" in driver.qe_options
+    assert "al_pbe_v1.uspp.F.UPF" in driver.qe_options["atomic_species"][0]
+
+
 def test_qepy_calculator_ksppresolver(al_atoms, kspp_offline_kwargs):
     from qepy.calculator import QEpyCalculator
 

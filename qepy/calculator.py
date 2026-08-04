@@ -2,7 +2,7 @@ import numpy as np
 from copy import deepcopy
 from qepy.driver import Driver
 from qepy_modules import constants
-from qepy.io import QEInput
+from qepy.io import QEInput, pop_kspp_config
 from ase.calculators.calculator import Calculator, all_changes
 from ase.units import create_units
 from ase.geometry import wrap_positions
@@ -40,6 +40,9 @@ class QEpyCalculator(Calculator):
         A dictionary with input parameters for QE to generate QE input file.
     ksppresolver : bool or QEInput.KSPPResolver
         Enable KSPP auto-resolution of pseudopotentials (same API as :class:`QEInput`).
+        Additional KSPP options (``table``, ``xc``, ``accuracy``, ``fmt``, ``manual``,
+        ``cache_dir``, ``search_paths``, ``offline``, ``update_ecuts``) may be passed as
+        keyword arguments and are forwarded to :class:`QEInput`.
     qeinput : QEInput
         Optional pre-built :class:`QEInput` object (e.g. from ``QEInput(..., ksppresolver=True)``).
     comm : object
@@ -90,12 +93,11 @@ class QEpyCalculator(Calculator):
     def __init__(self, atoms = None, inputfile = None, from_file = False, wrap = False, extrapolation = True,
             ase_espresso = None, qe_options = None, comm = None, ldescf = False, iterative = False,
             task = 'scf', embed = None, prefix = None, outdir = None, logfile = None, prog = 'pw',
-            qeinput = None, ksppresolver = False, kspp_auto = False,
-            kspp_table = None, kspp_xc = None, kspp_accuracy = None, kspp_format = None,
-            kspp_manual = None, kspp_cache_dir = None, kspp_search_paths = None,
-            kspp_offline = False, kspp_resolver = None, update_ecuts = False,
-            **kwargs):
+            qeinput = None, ksppresolver = False, **kwargs):
         Calculator.__init__(self, atoms = atoms, **kwargs)
+        kspp_init = pop_kspp_config(kwargs)
+        if kspp_init and not ksppresolver:
+            ksppresolver = True
         #
         self.lstart = False
         self.optimizer = None
@@ -122,31 +124,6 @@ class QEpyCalculator(Calculator):
         self.atoms_save = None
         self.driver = None
         self.iter = 0
-
-        kspp_init = {
-            key: value
-            for key, value in (
-                ('table', kspp_table),
-                ('xc', kspp_xc),
-                ('accuracy', kspp_accuracy),
-                ('fmt', kspp_format),
-                ('manual', kspp_manual),
-                ('cache_dir', kspp_cache_dir),
-                ('search_paths', kspp_search_paths),
-                ('offline', kspp_offline),
-                ('update_ecuts', update_ecuts),
-            )
-            if value is not None and value is not False
-        }
-        if kspp_offline:
-            kspp_init['offline'] = True
-        if update_ecuts:
-            kspp_init['update_ecuts'] = True
-
-        if kspp_auto and not ksppresolver:
-            ksppresolver = True
-        if kspp_resolver is not None:
-            ksppresolver = kspp_resolver
 
         if qeinput is not None:
             self.qeinput = qeinput
@@ -177,18 +154,6 @@ class QEpyCalculator(Calculator):
                 'embed' : embed,
                 'logfile' : logfile,
                 }
-        self.kspp_options = {
-            'kspp_auto': bool(ksppresolver) or kspp_auto,
-            'kspp_table': kspp_table,
-            'kspp_xc': kspp_xc,
-            'kspp_accuracy': kspp_accuracy,
-            'kspp_format': kspp_format,
-            'kspp_manual': kspp_manual,
-            'kspp_cache_dir': kspp_cache_dir,
-            'kspp_search_paths': kspp_search_paths,
-            'kspp_offline': kspp_offline,
-            'kspp_resolver': kspp_resolver,
-        }
         self.qepy_options.update(kwargs)
         #
         self.parameters['qe_options'] = self.qe_options
@@ -249,14 +214,12 @@ class QEpyCalculator(Calculator):
                 self.qeinput.qe_options = qe_options
                 if self.qeinput.kspp_enabled and atoms is not None:
                     self.qeinput.ksppresolver(apply=True)
-                write_kwargs = {} if self.qeinput.kspp_enabled else self.kspp_options
                 self.qeinput.write_qe_input(
                     self.inputfile,
                     atoms=atoms,
                     basefile=self.basefile,
                     qe_options=qe_options,
                     prog=self.prog,
-                    **write_kwargs,
                 )
                 self._qe_options = deepcopy(self.qeinput.qe_options)
         self.driver = Driver(self.inputfile, **self.qepy_options)
