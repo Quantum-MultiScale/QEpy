@@ -3,7 +3,7 @@ PNAME = qepy_phonon_ph
 QEPY_LIBS = -L$(BUILDDIR) $(MODS_LR)
 QEPY_INCS = -I. -I$(QEDIR)/$(QESRC_DIR) $(INCS_MODS_LR) $(INCS_MODS_LR_QE)
 
-QEPY_OBJS = 
+QEPY_OBJS = qepy_phonon.o
 
 QEPY_PROG_OBJS = alpha2f.o \
 dvscf_q2r.o \

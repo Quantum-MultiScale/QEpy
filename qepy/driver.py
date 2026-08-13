@@ -249,6 +249,8 @@ class Driver(metaclass=QEpyLibs):
              - 'scf' : Self consistent field
              - 'nscf' : initialization of Driver from previous SCF calculation
              - 'optical' : Optical absorption spectrum (real-time TDDFT with ce-tddft of Davide Ceresoli)
+             - 'tddfpt_davidson' : TDDFPT with davidson algorithm
+             - 'phonon' : Linear-response phonons (ph.x), `qe_options` must also contain an `&inputph` section
 
         qe_options: dict
             A dictionary with input parameters for QE to generate QE input file.
@@ -282,6 +284,8 @@ class Driver(metaclass=QEpyLibs):
             self.tddft_initialize(inputfile=inputfile, commf = commf, **kwargs)
         elif task.startswith('tddfpt_'):
             self.tddfpt_initialize(inputfile=inputfile, commf = commf, **kwargs)
+        elif task == 'phonon' :
+            self.phonon_initialize(inputfile=inputfile, commf = commf, **kwargs)
         elif task == 'nscf' :
             inputobj = self.qepy_pw.qepy_common.input_base()
             if self.prefix : inputobj.prefix = self.prefix
@@ -348,6 +352,23 @@ class Driver(metaclass=QEpyLibs):
             self.qepy_modules.control_flags.set_io_level(1)
             #
             self.qepy_tddfpt.qepy_lr_dav_main_initial(inputfile)
+
+    def phonon_initialize(self, inputfile = None, commf = None, **kwargs):
+        """ Initialize the phonon (linear-response, ``ph.x``) calculation
+
+        Parameters
+        ----------
+        inputfile : str
+            Name of QE input file, which must also contain an `&inputph` section.
+        commf : object
+            mpi4py parallel communicator to be sent to Fortran
+        """
+        if inputfile is None : inputfile = self.inputfile
+        if commf is None : commf = self.commf
+        #
+        if self.progress :
+            raise AttributeError("Not support 'progress' now")
+        self.qepy_phonon_ph.qepy_phonon_initial(inputfile, commf)
 
     def diagonalize(self, print_level = 2, nscf = False, **kwargs):
         """Diagonalize the Hamiltonian
@@ -422,6 +443,9 @@ class Driver(metaclass=QEpyLibs):
             self.qepy_cetddft.qepy_molecule_optical_absorption()
         elif self.task=='tddfpt_davidson' :
             self.tddfpt_davidson_scf()
+        elif self.task == 'phonon' :
+            self.qepy_phonon_ph.qepy_phonon_run()
+            return None
         elif nscf :
             self.embed.task = 'nscf'
             self.qepy_pw.qepy_electrons_scf(print_level, 0)
@@ -507,6 +531,8 @@ class Driver(metaclass=QEpyLibs):
             self.tddft_stop(exit_status, print_flag = print_flag, what = what, **kwargs)
         elif self.task == 'tddfpt_davidson' :
             self.tddfpt_davidson_stop(exit_status, print_flag = print_flag, what = what, **kwargs)
+        elif self.task == 'phonon' :
+            self.phonon_stop(**kwargs)
         else :
             if not self.embed.initial : self.end_scf()
             self.qepy_pw.qepy_stop_run(exit_status, print_flag = print_flag, what = what, finalize = False)
@@ -543,6 +569,235 @@ class Driver(metaclass=QEpyLibs):
     def tddfpt_davidson_stop(self, exit_status = 0, what = 'no', print_flag = 0, **kwargs):
         """Stops TDDFPT run"""
         self.qepy_tddfpt.qepy_lr_dav_main_finalise()
+
+    def phonon_stop(self, finalize = False, **kwargs):
+        """Stops the phonon (``ph.x``) run"""
+        self.qepy_phonon_ph.qepy_stop_ph(finalize)
+
+    def get_phonon_frequencies(self, units = 'cm-1', output = None):
+        """Return the phonon frequencies from a ``task='phonon'`` run.
+
+        QE's own linear-response code deallocates the dynamical-matrix
+        arrays it computes internally (`dynmat` module) before `scf()`
+        returns control to Python, so there is no live Fortran state left
+        to read them from directly. This instead parses the "freq ( i) =
+        ... [THz] = ... [cm-1]" lines `ph.x` writes to its output -- the
+        same lines you would otherwise grep out of the log file yourself.
+
+        Parameters
+        ----------
+        units : str
+            ``'cm-1'`` (default) or ``'THz'``.
+        output : str or list of str, optional
+            Lines of ``ph.x`` output to parse. Defaults to this driver's own
+            `logfile` (works whether called before or after `stop()`); pass
+            a different path or the lines explicitly to parse another output.
+
+        Returns
+        -------
+        freq : np.ndarray
+            The phonon frequencies, in the order they appear in the output
+            (i.e. one block per q-point for a dispersion run). A negative
+            value denotes an imaginary (unstable) mode.
+        """
+        if units not in ('cm-1', 'THz') :
+            raise ValueError("units must be 'cm-1' or 'THz'")
+        if output is None :
+            if isinstance(self.logfile, str) and getattr(self.fileobj, 'closed', False) :
+                # stop() already closed self.fileobj (e.g. called from a later cell); re-read by path
+                output = self.logfile
+            else :
+                output = self.get_output()
+                if output is None :
+                    raise ValueError("No output to parse; initialize the Driver with a `logfile`, or pass `output` explicitly.")
+        if isinstance(output, str) :
+            with open(output, 'r') as fh :
+                output = fh.readlines()
+        icol = 1 if units == 'cm-1' else 0
+        freqs = []
+        for line in output :
+            if 'freq (' not in line : continue
+            value = line.split('=')[icol + 1].split('[')[0]
+            freqs.append(float(value))
+        return np.asarray(freqs)
+
+    def get_phonon_qpath(self, path = None):
+        """Return the anchor q-points of a high-symmetry path for this
+        driver's own structure, for use with `run_matdyn`.
+
+        The structure comes from this driver (`get_ase_atoms`, itself read
+        from QE's own `cell_base`/`ions_base` state) rather than a
+        separately user-supplied geometry -- call this before `stop()`,
+        while that state is still live. ASE is used only for its
+        Bravais-lattice special-point tables (QE has no equivalent lookup),
+        not for the geometry itself or for any coordinate transform.
+
+        Parameters
+        ----------
+        path : str or list, optional
+            A path string understood by ASE (e.g. ``'GXWKGL'``); if it
+            contains commas (disconnected segments), only the first segment
+            is used. If not given, ASE's default path for the cell's
+            Bravais lattice is used. Alternatively, an explicit list of
+            ``(label, [x, y, z])`` pairs in crystal coordinates.
+
+        Returns
+        -------
+        labels : list of str
+        q_crystal : np.ndarray, shape (nanchors, 3)
+            Crystal/fractional coordinates, ready for `run_matdyn`.
+        """
+        if path is not None and not isinstance(path, str) :
+            labels, q_crystal = zip(*path)
+            return list(labels), np.asarray(q_crystal)
+        #
+        from ase.dft.kpoints import parse_path_string
+        atoms = self.get_ase_atoms()
+        lat = atoms.cell.get_bravais_lattice()
+        special_points = lat.get_special_points()
+        if path is None :
+            path = lat.special_path
+        labels = parse_path_string(path)[0]
+        q_crystal = np.array([special_points[l] for l in labels])
+        return labels, q_crystal
+
+    def run_q2r(self, fildyn, flfrc, asr = 'crystal', inputfile = 'q2r.in',
+            python = None, nproc = 1, mpirun = 'mpirun', **kwargs):
+        """Run ``q2r.x``: turn ``ph.x``'s grid of dynamical matrices (from a
+        ``task='phonon'`` run with ``ldisp=.true.`` and ``nq1,nq2,nq3``)
+        into real-space interatomic force constants.
+
+        ``q2r.x`` is still a thin f90wrap binding around QE's original
+        standalone-executable main routine and calls ``mp_global_end()``
+        (MPI finalize) -- unlike ``task='phonon'``, it hasn't been given
+        the Jupyter-safe treatment, so this runs it in a short-lived
+        subprocess instead, safe regardless of what else is going on in
+        the calling process.
+
+        Parameters
+        ----------
+        fildyn : str
+            Same ``fildyn`` prefix used in the ``&inputph`` of the (grid)
+            ``ph.x`` run.
+        flfrc : str
+            Output file for the interatomic force constants, needed by
+            `run_matdyn`.
+        asr : str
+            Acoustic sum rule, e.g. ``'no'`` or ``'crystal'``.
+        inputfile : str
+            Name of the ``q2r.x`` input file to write.
+        kwargs : dict
+            Extra ``&input`` namelist entries for ``q2r.x``.
+
+        Returns
+        -------
+        output : str
+            ``q2r.x``'s own stdout.
+        """
+        from qepy.io import QEInput
+        from qepy.phonon import _run_subprocess
+        options = {'fildyn' : f"'{fildyn}'", 'flfrc' : f"'{flfrc}'", 'zasr' : f"'{asr}'"}
+        options.update(kwargs)
+        QEInput().write_qe_input(inputfile, qe_options={'&input' : options}, prog='q2r')
+        return _run_subprocess('q2r.x', inputfile, python=python, nproc=nproc, mpirun=mpirun)
+
+    def run_matdyn(self, flfrc, q_crystal, points_per_segment = 30, asr = 'crystal',
+            inputfile = 'matdyn.in', flfrq = 'matdyn.freq', python = None, nproc = 1,
+            mpirun = 'mpirun', **kwargs):
+        """Run ``matdyn.x``: interpolate phonon frequencies from real-space
+        force constants (`run_q2r`'s output) onto a q-point path.
+
+        Like `run_q2r`, ``matdyn.x`` is run in a subprocess -- it also ends
+        in a Fortran ``STOP``, which would otherwise take down a live
+        Python/Jupyter process. Use `get_phonon_dispersion` afterwards to
+        read the results back into Python, the same two-step pattern as
+        `scf` + `get_phonon_frequencies`.
+
+        Parameters
+        ----------
+        flfrc : str
+            Interatomic force constants file, as written by `run_q2r`.
+        q_crystal : array, shape (nanchors, 3)
+            High-symmetry q-points (anchors) in crystal/fractional
+            coordinates, e.g. from `get_phonon_qpath`. ``matdyn.x``
+            connects consecutive anchors and interpolates
+            `points_per_segment` points along each segment
+            (``q_in_band_form``); it also does its own crystal-to-cartesian
+            conversion (``q_in_cryst_coord``), so no reciprocal-lattice
+            math is needed here.
+        points_per_segment : int
+            Number of interpolated points generated between each pair of
+            consecutive anchors.
+        asr : str
+            Acoustic sum rule; should normally match what was used in
+            `run_q2r`.
+        inputfile : str
+            Name of the ``matdyn.x`` input file to write.
+        flfrq : str
+            Base name for ``matdyn.x``'s frequency output; `get_phonon_dispersion`
+            reads back its companion ``<flfrq>.gp`` file (path length +
+            frequencies).
+        kwargs : dict
+            Extra ``&input`` namelist entries for ``matdyn.x``.
+
+        Returns
+        -------
+        output : str
+            ``matdyn.x``'s own stdout.
+        """
+        from qepy.io import QEInput
+        from qepy.phonon import _run_subprocess
+        nq = len(q_crystal)
+        options = {
+            'flfrc' : f"'{flfrc}'", 'asr' : f"'{asr}'", 'flfrq' : f"'{flfrq}'",
+            'q_in_band_form' : True, 'q_in_cryst_coord' : True,
+            }
+        options.update(kwargs)
+        QEInput().write_qe_input(inputfile, qe_options={'&input' : options}, prog='matdyn')
+        with open(inputfile, 'a') as fh :
+            fh.write(f'{nq}\n')
+            for q in q_crystal :
+                fh.write(f'{q[0]:.10f} {q[1]:.10f} {q[2]:.10f} {points_per_segment}\n')
+        output = _run_subprocess('matdyn.x', inputfile, python=python, nproc=nproc, mpirun=mpirun)
+        self._matdyn_flfrq = flfrq
+        self._matdyn_nanchors = nq
+        self._matdyn_points_per_segment = points_per_segment
+        return output
+
+    def get_phonon_dispersion(self, flfrq = None):
+        """Return the phonon dispersion computed by `run_matdyn`, read back
+        from its ``<flfrq>.gp`` file (path length + frequencies, one line
+        per interpolated q-point).
+
+        Parameters
+        ----------
+        flfrq : str, optional
+            Defaults to the `flfrq` used in the last `run_matdyn` call on
+            this driver.
+
+        Returns
+        -------
+        x : np.ndarray, shape (npoints,)
+            Cumulative path length (tpiba units) at each interpolated point.
+        freq : np.ndarray, shape (npoints, nmodes)
+            Phonon frequencies in cm-1 at each point of `x`. A negative
+            value denotes an imaginary (unstable) mode.
+        special_x : np.ndarray, shape (nanchors,), optional
+            The `x` value of each high-symmetry anchor point passed to
+            `run_matdyn` (for tick marks/labels) -- only returned if this
+            driver has already run `run_matdyn`.
+        """
+        if flfrq is None :
+            flfrq = getattr(self, '_matdyn_flfrq', 'matdyn.freq')
+        data = np.loadtxt(flfrq + '.gp')
+        x = data[:, 0]
+        freq = data[:, 1:]
+        nanchors = getattr(self, '_matdyn_nanchors', None)
+        points_per_segment = getattr(self, '_matdyn_points_per_segment', None)
+        if nanchors and points_per_segment :
+            special_x = x[[k * points_per_segment for k in range(nanchors)]]
+            return x, freq, special_x
+        return x, freq
 
     def save(self, what = 'all', **kwargs):
         """
