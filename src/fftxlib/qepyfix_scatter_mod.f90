@@ -18,9 +18,9 @@
 
         USE fft_types, ONLY: fft_type_descriptor
         USE fft_param
-        !qepy fix --> import 
+!qepy -->
         USE mp,                   ONLY : mp_bcast
-        !qepy fix <-- import 
+!qepy <--
 
         IMPLICIT NONE
 
@@ -111,9 +111,9 @@ SUBROUTINE gather_real_grid ( dfft, f_in, f_out )
   ! ... otherwise f_out must be allocated on all processors even if not used
   !
   info = size( f_out ) - displs( dfft%nproc3-1 ) - recvcount( dfft%nproc3-1 )
-  !qepy --> only check root processor
+!qepy -->
   CALL mp_bcast( info, dfft%root, dfft%comm)
-  !qepy <-- only check root processor
+!qepy <--
   IF( info < 0 ) &
      CALL fftx_error__( ' gather_real_grid ', ' f_out too small ', -info )
   !
@@ -192,9 +192,9 @@ SUBROUTINE gather_complex_grid ( dfft, f_in, f_out )
   !write (*,*) 'gcgather_grid 2*size(f_out)',2*size(f_out) ; FLUSH(6)
   !write (*,*) 'gcgather_grid displ+recv',dfft%nproc3, displs(dfft%nproc3-1) + recvcount(dfft%nproc3-1); FLUSH(6)
   info = 2*size( f_out ) - displs( dfft%nproc3 - 1 ) - recvcount( dfft%nproc3-1 ) ; FLUSH(6)
-  !qepy --> only check root processor
+!qepy -->
   CALL mp_bcast( info, dfft%root, dfft%comm)
-  !qepy <-- only check root processor
+!qepy <--
   IF( info < 0 ) CALL fftx_error__( ' gather_complex_grid ', ' f_out too small ', -info )
 
   info = 0
@@ -252,9 +252,9 @@ SUBROUTINE scatter_real_grid ( dfft, f_in, f_out )
      if (proc > 0) displs(proc) = displs(proc-1) + sendcount(proc-1)
   ENDDO
   info = size( f_in ) - displs( dfft%nproc3 - 1 ) - sendcount( dfft%nproc3 - 1 )
-  !qepy --> only check root processor
+!qepy -->
   CALL mp_bcast( info, dfft%root, dfft%comm)
-  !qepy <-- only check root processor
+!qepy <--
   IF( info < 0 ) CALL fftx_error__( ' scatter_real_grid ', ' f_in too small ', -info )
   info = 0
   !write (6,*) 'scatter grid ok 1'
@@ -334,9 +334,9 @@ SUBROUTINE scatter_complex_grid ( dfft, f_in, f_out )
   !write(*,*) 'cscatter_grid 2*size(f_in) ', 2*size(f_in); FLUSH(6)
   !write(*,*) 'cscatter_grid displ+send ', dfft%nproc3, displs(dfft%nproc3-1) + sendcount(dfft%nproc3-1); FLUSH(6)
   info = 2*size( f_in ) - displs( dfft%nproc3 - 1 ) - sendcount( dfft%nproc3 - 1 )
-  !qepy --> only check root processor
+!qepy -->
   CALL mp_bcast( info, dfft%root, dfft%comm)
-  !qepy <-- only check root processor
+!qepy <--
   IF( info < 0 ) &
      CALL fftx_error__( ' scatter_complex_grid ', ' f_in too small ', -info )
   !

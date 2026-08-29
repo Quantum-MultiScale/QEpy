@@ -6,7 +6,9 @@
 ! or http://www.gnu.org/copyleft/gpl.txt .
 !
 !----------------------------------------------------------------------------
+!qepy -->
 SUBROUTINE qepy_stop_run( exit_status, print_flag, what, finalize )
+!qepy <--
   !----------------------------------------------------------------------------
   !! Close all files and synchronize processes before stopping:
   !
@@ -16,15 +18,15 @@ SUBROUTINE qepy_stop_run( exit_status, print_flag, what, finalize )
   !
   !! Do not remove temporary files needed for restart.
   !
-  !qepy --> 
+!qepy -->
   ! Also add some from pwscf and run_pwscf
   ! Merge and modify the mp_global.mp_global_end
-  !qepy <-- 
   USE io_global,          ONLY : stdout, ionode
+!qepy <--
   USE mp_global,          ONLY : mp_global_end
   USE environment,        ONLY : environment_end
   USE io_files,           ONLY : iuntmp, seqopn
-  !qepy --> more import
+!qepy -->
   USE qmmm,               ONLY : qmmm_shutdown
   USE qexsd_module,       ONLY : qexsd_set_status
   USE mp,                 ONLY : mp_comm_free, mp_barrier, mp_start, mp_end, mp_stop, mp_count_nodes
@@ -37,13 +39,14 @@ SUBROUTINE qepy_stop_run( exit_status, print_flag, what, finalize )
   USE laxlib_processors_grid,            ONLY : ortho_comm
   USE control_flags,      ONLY : lensemb
   USE beef,               ONLY : beef_energies
-  !qepy <-- more import
+!qepy <--
   !
   IMPLICIT NONE
   !
   INTEGER, INTENT(IN) :: exit_status
   LOGICAL             :: exst, opnd, lflag
   !
+!qepy -->
   INTEGER, INTENT(IN), OPTIONAL :: print_flag
   CHARACTER(LEN=*), INTENT(IN), OPTIONAL :: what
   LOGICAL, OPTIONAL   :: finalize
@@ -51,14 +54,10 @@ SUBROUTINE qepy_stop_run( exit_status, print_flag, what, finalize )
   INTEGER             :: iprint = 0
   INTEGER :: ierr
   !
-  !qepy --> run_pwscf
   CALL qexsd_set_status( exit_status )
   IF ( lensemb ) CALL beef_energies( )
   CALL qmmm_shutdown()
-  !qepy <-- run_pwscf
-  !qepy --> pwscf
   if ( ortho_comm  /= 0 .and. ortho_comm  /= world_comm ) CALL laxlib_end()
-  !qepy <-- pwscf
   !
   IF ( PRESENT(what)) THEN
      IF (len_trim(what)>1) what_= trim(what)
@@ -75,6 +74,7 @@ SUBROUTINE qepy_stop_run( exit_status, print_flag, what, finalize )
   ENDIF
 
 
+!qepy <--
   lflag = ( exit_status == 0 ) 
   IF ( lflag ) THEN
      ! 
@@ -94,19 +94,27 @@ SUBROUTINE qepy_stop_run( exit_status, print_flag, what, finalize )
   !
   CALL close_files( lflag )
   !
+!qepy -->
   IF ( iprint > 0 .and. iprint<10 ) THEN
+!qepy <--
   CALL print_clock_pw()
+!qepy -->
   ENDIF
+!qepy <--
   !
   CALL clean_pw( .TRUE. )
   !
+!qepy -->
   IF ( iprint > 0 .and. iprint<10 ) THEN
+!qepy <--
   CALL environment_end( 'PWSCF' )
+!qepy -->
   ENDIF
+!qepy <--
   !
+!qepy -->
   !CALL mp_global_end()
   !-----------------------------------------------------------------------
-  !qepy --> add mp_global_end
   if ( intra_egrp_comm  /= 0 .and. intra_egrp_comm  /= world_comm ) then
      CALL mp_comm_free ( intra_egrp_comm )
      intra_egrp_comm = 0
@@ -150,12 +158,15 @@ SUBROUTINE qepy_stop_run( exit_status, print_flag, what, finalize )
      ENDIF
   END IF
 #endif
-  !qepy <-- add mp_global_end
   !-----------------------------------------------------------------------
+!qepy <--
   !
+!qepy -->
 END SUBROUTINE qepy_stop_run
+!qepy <--
 !
 !-----------------------------------------
+!qepy -->
 !SUBROUTINE do_stop( exit_status )
   !!---------------------------------------
   !!! Stop the run.
@@ -208,3 +219,4 @@ END SUBROUTINE qepy_stop_run
   !RETURN
   !!
 !END SUBROUTINE closefile
+!qepy <--

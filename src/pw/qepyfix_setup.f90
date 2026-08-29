@@ -721,10 +721,10 @@ SUBROUTINE setup_para ( nr3, nkstot, nbnd )
   USE command_line_options, ONLY : npool_, ndiag_, nband_, ntg_, nyfft_, &
           nmany_, pencil_decomposition_
   !
-  !qepy fix --> import
+!qepy -->
   USE laxlib_processors_grid, ONLY : lax_is_initialized
-  !qepy fix <-- import
   !
+!qepy <--
   IMPLICIT NONE
   !
   INTEGER, INTENT(in) :: nr3
@@ -737,11 +737,11 @@ SUBROUTINE setup_para ( nr3, nkstot, nbnd )
   !
   ! do not execute twice: unpredictable results may follow
   !
-  !qepy fix --> check first
+!qepy -->
   !IF ( .NOT.first ) RETURN
   !first = .false.
   IF ( lax_is_initialized ) RETURN
-  !qepy fix <-- check first
+!qepy <--
   !
   ! GPUs (not sure it serves any purpose)
   !

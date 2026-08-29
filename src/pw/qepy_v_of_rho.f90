@@ -6,7 +6,9 @@
 ! or http://www.gnu.org/copyleft/gpl.txt .
 !
 !----------------------------------------------------------------------------
+!qepy -->
 SUBROUTINE qepy_v_of_rho( rho, rho_core, rhog_core, &
+!qepy <--
                      ehart, etxc, vtxc, eth, etotefield, charge, v )
   !----------------------------------------------------------------------------
   !! This routine computes the Hartree and Exchange and Correlation
@@ -29,8 +31,10 @@ SUBROUTINE qepy_v_of_rho( rho, rho_core, rhog_core, &
   USE tsvdw_module,     ONLY : tsvdw_calculate, UtsvdW
   USE libmbd_interface, ONLY : mbd_interface
   USE sic_mod,          ONLY : add_vsic
+!qepy -->
   !
   USE qepy_common,      ONLY : embed
+!qepy <--
   !
   IMPLICIT NONE
   !
@@ -66,16 +70,20 @@ SUBROUTINE qepy_v_of_rho( rho, rho_core, rhog_core, &
   !
   ! ... calculate exchange-correlation potential
   !
+!qepy -->
   if (iand(embed%exttype,4) == 0) then ! XC
+!qepy <--
   IF (xclib_dft_is('meta')) THEN
      CALL v_xc_meta( rho, rho_core, rhog_core, etxc, vtxc, v%of_r, v%kin_r )
   ELSE
      CALL v_xc( rho, rho_core, rhog_core, etxc, vtxc, v%of_r )
   ENDIF
+!qepy -->
   else
   v%of_r(:,:) = 0.0
   etxc = 0.0
   end if
+!qepy <--
   !
   ! ... add a magnetic field  (if any)
   !
@@ -83,11 +91,15 @@ SUBROUTINE qepy_v_of_rho( rho, rho_core, rhog_core, &
   !
   ! ... calculate hartree potential
   !
+!qepy -->
   if (iand(embed%exttype,2) == 0) then ! Hartree
+!qepy <--
   CALL v_h( rho%of_g(:,1), ehart, charge, v%of_r )
+!qepy -->
   else
      ehart=0.0
   end if
+!qepy <--
   !
   ! ... DFT+U(+V): build up (extended) Hubbard potential 
   !
@@ -156,10 +168,13 @@ SUBROUTINE qepy_v_of_rho( rho, rho_core, rhog_core, &
   !
   RETURN
   !
+!qepy -->
 END SUBROUTINE qepy_v_of_rho
+!qepy <--
 !
 !
 !----------------------------------------------------------------------------
+!qepy -->
 !SUBROUTINE v_xc_meta( rho, rho_core, rhog_core, etxc, vtxc, v, kedtaur )
   !!----------------------------------------------------------------------------
   !!! Exchange-Correlation potential (meta) Vxc(r) from n(r)
@@ -857,7 +872,9 @@ END SUBROUTINE qepy_v_of_rho
   !!
   !IF (nspin==1) eth = 2.d0 * eth
   !!
+!qepy <--
   !! Hubbard energy
+!qepy -->
   !!
   !IF ( iverbosity > 0 .AND. .NOT.dfpt_hub ) THEN
      !WRITE(stdout,'(/5x,"HUBBARD ENERGY = ",f9.4,1x," (Ry)")') eth
@@ -867,7 +884,9 @@ END SUBROUTINE qepy_v_of_rho
   !!
 !END SUBROUTINE v_hubbard
 !!-----------------------------------------------------------------------
+!qepy <--
 
+!qepy -->
 !!---------------------------------------------------------------------------
 !SUBROUTINE v_hubbard_b (ns, v_hub, eth)
   !!-------------------------------------------------------------------------
@@ -884,7 +903,9 @@ END SUBROUTINE qepy_v_of_rho
   !USE lsda_mod,             ONLY : nspin
   !USE control_flags,        ONLY : iverbosity, dfpt_hub
   !USE io_global,            ONLY : stdout
+!qepy <--
 
+!qepy -->
   !IMPLICIT NONE
   !!
   !REAL(DP), INTENT(IN)  :: ns(ldmx_b,ldmx_b,nspin,nat)
@@ -949,7 +970,9 @@ END SUBROUTINE qepy_v_of_rho
   !!
 !END SUBROUTINE v_hubbard_b
 !!-----------------------------------------------------------------------
+!qepy <--
 
+!qepy -->
 !!-----------------------------------------------------------------------
 !SUBROUTINE v_hubbard_full( ns, v_hub, eth )
   !!---------------------------------------------------------------------
@@ -1074,7 +1097,9 @@ END SUBROUTINE qepy_v_of_rho
   !IF (nspin==1) eth_u = 2.d0 * eth_u
   !eth = eth_u - eth_dc
   !!
+!qepy <--
   !! Hubbard energy
+!qepy -->
   !!
   !IF ( iverbosity > 0 ) THEN
      !WRITE(stdout,'(/5x,"HUBBARD ENERGIES (dc, U, total) ",3f9.4,1x," (Ry)")') eth_dc, eth_u, eth
@@ -1086,7 +1111,9 @@ END SUBROUTINE qepy_v_of_rho
   !!
 !END SUBROUTINE v_hubbard_full
 !!---------------------------------------------------------------
+!qepy <--
 
+!qepy -->
 !!---------------------------------------------------------------
 !SUBROUTINE v_hubbard_full_nc( ns, v_hub, eth )
   !!-------------------------------------------------------------
@@ -1277,7 +1304,9 @@ END SUBROUTINE qepy_v_of_rho
   !!
 !END SUBROUTINE v_hubbard_full_nc
 !!----------------------------------------------------------------------------
+!qepy <--
 
+!qepy -->
 !!------------------------------------------------------------------------------------
 !SUBROUTINE v_hubbard_extended (nsg, v_hub, eth)
   !!-----------------------------------------------------------------------------------
@@ -1454,7 +1483,9 @@ END SUBROUTINE qepy_v_of_rho
   !!
 !END SUBROUTINE v_hubbard_extended
 !!---------------------------------------------------------------------
+!qepy <--
 
+!qepy -->
 !!----------------------------------------------------------------------------
 !SUBROUTINE v_h_of_rho_r( rhor, ehart, charge, v )
   !!----------------------------------------------------------------------------
@@ -1595,3 +1626,4 @@ END SUBROUTINE qepy_v_of_rho
   !RETURN
   !!
 !END SUBROUTINE gradv_h_of_rho_r
+!qepy <--

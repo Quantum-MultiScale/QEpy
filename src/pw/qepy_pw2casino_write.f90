@@ -6,8 +6,11 @@
 ! or http://www.gnu.org/copyleft/gpl.txt .
 !
 !-----------------------------------------------------------------------
+!qepy -->
 !SUBROUTINE write_casino_wfn(gather,blip,multiplicity,binwrite,single_precision_blips,n_points_for_test,postfix)
+!qepy <--
 
+!qepy -->
    !USE kinds, ONLY: DP,sgl
    !USE ions_base, ONLY : nat, ntyp => nsp, ityp, tau, zv, atm
    !USE cell_base, ONLY: omega, alat, tpiba2, at, bg
@@ -333,12 +336,17 @@
       !
       USE becmod_subs_gpum, ONLY : using_becp_auto
       USE uspp_init,        ONLY : init_us_2
+!qepy <--
    USE kinds, ONLY: DP,sgl
+!qepy -->
    !USE ions_base, ONLY : nat, ntyp => nsp, ityp, tau, zv, atm
+!qepy <--
    USE cell_base, ONLY: omega, alat, tpiba2, at, bg
    USE run_info,  ONLY: title    ! title of the run
    USE constants, ONLY: tpi, e2, eps6
+!qepy -->
    !USE ener, ONLY: ewld, ehart, etxc, vtxc, etot, etxcc, demet, ef
+!qepy <--
    USE fft_base,  ONLY: dfftp
    USE fft_rho, ONLY: rho_r2g
    USE gvect, ONLY: ngm, gstart, g, gg, gcutm, igtongl
@@ -363,7 +371,7 @@
    USE wvfct_gpum,         ONLY : using_et
 
    USE pw2blip
-   !qepy --> import more
+!qepy -->
   USE ions_base,            ONLY : zv, nat, nsp, ityp, tau, compute_eextfor, atm, &
                                    ntyp => nsp
   USE basis,                ONLY : starting_pot
@@ -395,7 +403,9 @@
                                    mbd_vdw, use_gpu
   USE control_flags,        ONLY : n_scf_steps, scf_error, scissor
   USE sci_mod,              ONLY : sci_iter
+!qepy <--
 
+!qepy -->
   USE io_files,             ONLY : iunmix, output_drho
   USE ldaU,                 ONLY : eth, lda_plus_u, lda_plus_u_kind, &
                                    niter_with_fixed_ns, hub_pot_fix, &
@@ -435,17 +445,17 @@
   USE qepy_common,          ONLY : embed
   USE constants,            ONLY : eps8
   USE becmod,               ONLY : is_allocated_bec_type
-      !qepy <-- import more
+!qepy <--
       !
       IMPLICIT NONE
 
       COMPLEX(DP), ALLOCATABLE :: aux(:,:)
       INTEGER :: npw, ibnd, j, ig, ik,ikk, ispin, na, nt, ijkb0, ikb,jkb, ih,jh
       REAL(dp), ALLOCATABLE :: g2kin(:)
-      !qepy --> remove etotefield
+!qepy -->
+! remove etotefield
       !REAL(DP) :: charge, etotefield, elocg
       REAL(DP) :: charge, elocg
-      !qepy <-- remove etotefield
       REAL(DP) :: ek, eloc, enl, etot_
       REAL (DP), EXTERNAL :: ewald, w1gauss
       INTEGER :: nk
@@ -474,11 +484,13 @@
          nk = nks
          !     nspin = 1
       ENDIF
+!qepy <--
 
       ALLOCATE (aux(dfftp%nnr,1))
-      !qepy add --> fix
+!qepy -->
+! fix becp
       if (is_allocated_bec_type(becp)) call deallocate_bec_type(becp)
-      !qepy add <-- fix
+!qepy <--
       CALL allocate_bec_type ( nkb, nbnd, becp )
       CALL using_becp_auto(2)
 
@@ -495,7 +507,9 @@
          !
          !      bring rho to G-space
          !
+!qepy -->
          if (iand(embed%exttype,1) == 0) then ! 
+!qepy <--
          CALL rho_r2g( dfftp, rho%of_r(:,ispin), aux )
          !
          DO nt = 1, ntyp
@@ -505,7 +519,9 @@
                IF( gamma_only .and. ig>=gstart) eloc = eloc + elocg
             ENDDO
          ENDDO
+!qepy -->
          end if
+!qepy <--
 
          CALL using_evc(0); CALL using_et(0)
 
@@ -515,10 +531,14 @@
             IF( nks > 1 ) CALL get_buffer (evc, nwordwfc, iunwfc, ikk )
             IF( nks > 1 ) CALL using_evc(2)
             !
+!qepy -->
             IF ( nkb > 0 ) THEN
+!qepy <--
             CALL init_us_2 (npw, igk_k(1,ikk), xk (1, ikk), vkb)
             CALL calbec ( npw, vkb, evc, becp )
+!qepy -->
             ENDIF
+!qepy <--
             !
             ! -TS term for metals (if any)
             !
@@ -587,6 +607,7 @@
       ENDDO
 
       DEALLOCATE ( g2kin )
+!qepy -->
       extene = embed%extene
       IF (abs(extene)<1.D-15) THEN
          IF (ALLOCATED(embed%extpot)) THEN
@@ -602,6 +623,7 @@
       !
       deband_hwf = qepy_delta_e(vrs)
       !
+!qepy <--
 #if defined(__MPI)
       CALL mp_sum( eloc,  intra_bgrp_comm )
       CALL mp_sum( ek,    intra_bgrp_comm )
@@ -613,6 +635,7 @@
       !
       ! compute ewald contribution
       !
+!qepy -->
       if (embed%lewald) then
          IF ( do_comp_esm ) THEN
             ewld = esm_ewald()
@@ -623,18 +646,21 @@
       else
          ewld=0.0_DP
       end if
+!qepy <--
       !
       ! compute hartree and xc contribution
       !
-      !qepy --> also paw
+!qepy -->
+! also paw
       CALL qepy_v_of_rho_all( rho, rho_core, rhog_core, &
+!qepy <--
                      ehart, etxc, vtxc, eth, etotefield, charge, v )
-      !qepy <-- also paw
       !
       ! compute exact exchange contribution (if present)
       !
       IF(xclib_dft_is('hybrid')) fock2 = 0.5_DP * exxenergy2()
       !
+!qepy -->
       !etot_=(ek + (etxc-etxcc)+ehart+eloc+enl+ewld)+demet+fock2
       !!
       !IF ( ABS(etot-etot_) > ABS(eps6*etot) ) THEN
@@ -644,10 +670,12 @@
       !ELSE
          !etot = etot_
       !END IF
+!qepy <--
       !
+!qepy -->
+! additional energies (electrons_scf)
       etot_=etot
       etot=(ek + (etxc-etxcc)+ehart+eloc+enl+ewld)+demet+fock2
-      !qepy --> additional energies (electrons_scf)
   IF ( llondon ) THEN
      elondon = energy_london( alat , nat , ityp , at ,bg , tau )
   ELSE
@@ -741,7 +769,7 @@
       etot_ = ehf
       !ehf = etot_ + eband + deband_hwf - eloc - enl - ek
       ehf = etot_ + eband + deband_hwf - enl - ek
-      !qepy <-- additional energies (electrons_scf)
+!qepy <--
       !
       CALL deallocate_bec_type (becp)
       CALL using_becp_auto(2)
@@ -761,6 +789,7 @@
       IF( degauss > 0.0_dp ) &
          WRITE (stdout,*) 'Smearing (-TS)   ', demet/e2, ' au  =  ', demet, ' Ry'
       WRITE (stdout,*) 'Total energy     ', etot/e2, ' au  =  ', etot, ' Ry'
+!qepy -->
       WRITE (stdout,*) '-------------------------------------'
       WRITE (stdout,*) 'Total energy0    ', etot_/e2, ' au  =  ', etot_, ' Ry'
       WRITE (stdout,*) 'External energy0 ', extene/e2, ' au  =  ', extene, ' Ry'
@@ -853,7 +882,9 @@
 9902 FORMAT( '     solvation energy (RISM)   =',F17.8,' Ry' )
 9903 FORMAT( '     level-shifting contrib.   =',F17.8,' Ry' )
       WRITE (stdout,*) '-------------------------------------'
+!qepy <--
       WRITE (stdout,*)
+!qepy -->
       embed%etotal=etot_
       !
       call embed%energies%reset(0.d0)
@@ -897,10 +928,14 @@
          embed%energies%paw_exc_ps    = SUM(etot_cmp_paw(:,2,2))   !'PAW xc energy PS'
       ENDIF
       ! <--
+!qepy <--
 
+!qepy -->
    END SUBROUTINE qepy_calc_energies
+!qepy <--
 
 
+!qepy -->
    !SUBROUTINE test_overlap
 !! Carry out the overlap test described in the CASINO manual.
 !! Repeat the whole test n_overlap_tests times, to compute error bars.
@@ -910,21 +945,31 @@
       !REAL(dp) xbb(5,2),xpp(5,2)
       !COMPLEX(dp) xbp(5,2)
       !REAL(dp) overlap(5,2),sum_overlap(5,2),sumsq_overlap(5,2)
+!qepy <--
 
+!qepy -->
       !IF(n_points_for_test<=0)RETURN
       !IF(n_overlap_tests<=0)RETURN
+!qepy <--
 
+!qepy -->
       !CALL init_rng(12345678)
+!qepy <--
 
+!qepy -->
       !sum_overlap(:,:)=0.d0 ; sumsq_overlap(:,:)=0.d0
       !DO j=1,n_overlap_tests
          !xbb(:,:)=0.d0 ; xpp(:,:)=0.d0 ; xbp(:,:)=0.d0
+!qepy <--
 
+!qepy -->
          !DO i=1,n_points_for_test
             !r(1)=ranx() ; r(2)=ranx() ; r(3)=ranx()
             !CALL blipeval(r,xb(1),xb(2:4),xb(5))
             !CALL pweval(r,xp(1),xp(2:4),xp(5))
+!qepy <--
 
+!qepy -->
             !IF(gamma_only)THEN
                !xbb(:,1)=xbb(:,1)+dble(xb(:))**2
                !xbp(:,1)=xbp(:,1)+dble(xb(:))*dble(xp(:))
@@ -947,7 +992,9 @@
                !overlap(k,1)=(dble(xbp(k,1))**2+aimag(xbp(k,1))**2)/(xbb(k,1)*xpp(k,1))
             !ENDIF ! xb & xd nonzero
          !ENDDO ! k
+!qepy <--
 
+!qepy -->
          !IF(blipreal==2)THEN
             !DO k=1,5
                !IF(xbb(k,2)/=0.d0.and.xpp(k,2)/=0.d0)THEN
@@ -961,21 +1008,31 @@
       !ENDDO ! j
       !av_overlap(:,:)=sum_overlap(:,:)/dble(n_overlap_tests)
       !avsq_overlap(:,:)=sumsq_overlap(:,:)/dble(n_overlap_tests)
+!qepy <--
 
+!qepy -->
    !END SUBROUTINE test_overlap
+!qepy <--
 
 
+!qepy -->
    !SUBROUTINE pweval(r,val,grad,lap)
       !DOUBLE PRECISION,INTENT(in) :: r(3)
       !COMPLEX(dp),INTENT(out) :: val,grad(3),lap
+!qepy <--
 
+!qepy -->
       !INTEGER ig
       !REAL(dp) dot_prod
       !COMPLEX(dp) eigr,eigr2
+!qepy <--
 
+!qepy -->
       !REAL(dp),PARAMETER :: pi=3.141592653589793238462643d0
       !COMPLEX(dp),PARAMETER :: iunity=(0.d0,1.d0)
+!qepy <--
 
+!qepy -->
       !val=0.d0 ; grad(:)=0.d0 ; lap=0.d0
       !DO ig=1,ngtot_g
          !dot_prod=tpi*sum(dble(g_int(:,ig))*r(:))
@@ -1008,8 +1065,10 @@
       !grad(:)=matmul(bg(:,:),grad(:))*(tpi/alat)
       !lap=lap*(tpi/alat)**2
    !END SUBROUTINE pweval
+!qepy <--
 
 
+!qepy -->
    !SUBROUTINE print_overlap(inode,whichband)
 !!-------------------------------------------------------------------------!
 !! Write out the overlaps of the value, gradient and Laplacian of the blip !
@@ -1020,16 +1079,24 @@
       !REAL(dp) :: av(5),avsq(5),err(5)
       !INTEGER k
       !CHARACTER(12) char12_arr(5)
+!qepy <--
 
+!qepy -->
       !IF(n_points_for_test<=0)RETURN
       !IF(n_overlap_tests<=0)RETURN
+!qepy <--
 
+!qepy -->
       !CALL mp_get(av(:),av_overlap(:,whichband),me_pool,ionode_id,inode,6434,intra_pool_comm)
       !CALL mp_get(avsq(:),avsq_overlap(:,whichband),me_pool,ionode_id,inode,6434,intra_pool_comm)
+!qepy <--
 
+!qepy -->
       !IF(.not.ionode)RETURN
       !IF(blipreal==1.and.whichband==2)RETURN
+!qepy <--
 
+!qepy -->
       !IF(n_overlap_tests<2)THEN
          !WRITE(stdout,*)'Error: need at least two overlap tests, to estimate error bars.'
          !STOP
@@ -1042,18 +1109,24 @@
       !ENDDO ! k
       !WRITE(stdout,'(2(1x,a),2x,3(1x,a))')char12_arr(1:5)
    !END SUBROUTINE print_overlap
+!qepy <--
 
 
+!qepy -->
    !FUNCTION to_c80(c)
       !CHARACTER(*),INTENT(in) :: c
       !CHARACTER(80) :: to_c80
       !to_c80=c
    !END FUNCTION to_c80
+!qepy <--
 
+!qepy -->
    !SUBROUTINE write_header
       !INTEGER j, na, nt, at_num
       !REAL(dp) :: kvec(3,nk),ksq(nk),kprod(6,nk)
+!qepy <--
 
+!qepy -->
       !IF(blip.and.binwrite)THEN
          !WRITE(iob)&
             !to_c80(title)    ,&
@@ -1083,7 +1156,9 @@
             !alat*at(1:3,3)   ,&
             !2                ,&
             !nbnd
+!qepy <--
 
+!qepy -->
 !!     some old PGI compiler seems to choke on this commented version....
 !!             to_c80(title)    ,& ! title
 !!             to_c80("PWSCF")  ,& ! code
@@ -1112,7 +1187,9 @@
 !!             alat*at(1:3,3)   ,&  ! pa3
 !!             2                ,&  ! nspin_check
 !!             nbnd                 ! num_nonloc_max
+!qepy <--
 
+!qepy -->
          !kvec(:,:) = tpi/alat*xk(1:3,1:nk)
          !kprod(1,:)=kvec(1,:)*kvec(1,:)
          !kprod(2,:)=kvec(2,:)*kvec(2,:)
@@ -1121,7 +1198,9 @@
          !kprod(5,:)=kvec(1,:)*kvec(3,:)
          !kprod(6,:)=kvec(2,:)*kvec(3,:)
          !ksq(:)=kprod(1,:)+kprod(2,:)+kprod(3,:)
+!qepy <--
 
+!qepy -->
          !CALL using_et(0)
          !WRITE(iob)&
             !kvec                                          ,&
@@ -1133,7 +1212,9 @@
             !et(1:nbnd,1:nk*nspin)/e2                      ,&
             !(.true.,j=1,nbnd*nk*nspin)                    ,&
             !(/nbnd,nbnd/)
+!qepy <--
 
+!qepy -->
 !!             kvec                                          ,& ! kvec
 !!             ksq                                           ,& ! ksq
 !!             kprod                                         ,& ! kprod
@@ -1143,26 +1224,36 @@
 !!             et(1:nbnd,1:nk*nspin)/e2                      ,& ! eigenvalue
 !!             (.true.,j=1,nbnd*nk*nspin)                    ,& ! on_this_cpu
 !!             (/nbnd,nbnd/)                                    ! num_nonloc
+!qepy <--
 
+!qepy -->
          !WRITE(iob)single_precision_blips                    ! single_precision_blips
+!qepy <--
 
+!qepy -->
          !! IF(no_loc_orbs>0)THEN
          !!    ...
          !! ENDIF
+!qepy <--
 
+!qepy -->
          !WRITE(iob)&
           !(0,j=1,nbnd*nk*2) ,&
           !(0,j=1,nbnd*nk*2) ,&
           !(0,j=1,nbnd*nk*2) ,&
           !(0,j=1,nbnd*nk*2)
+!qepy <--
 
+!qepy -->
 !!           (0,j=1,nbnd*nk*2) ,& ! orb_map_band
 !!           (0,j=1,nbnd*nk*2) ,& ! orb_map_ik
 !!           (0,j=1,nbnd*nk*2) ,& ! orb_map_iorb
 !!           (0,j=1,nbnd*nk*2)    ! occupied
          !RETURN
       !ENDIF
+!qepy <--
 
+!qepy -->
       !WRITE(io,'(a)') title
       !WRITE(io,'(a)')
       !WRITE(io,'(a)') ' BASIC INFO'
@@ -1217,19 +1308,29 @@
       !WRITE(io,100) alat*at(1,2), alat*at(2,2), alat*at(3,2)
       !WRITE(io,100) alat*at(1,3), alat*at(2,3), alat*at(3,3)
       !WRITE(io,'(a)') ' '
+!qepy <--
 
+!qepy -->
   !100 FORMAT (3(1x,f20.15))
+!qepy <--
 
+!qepy -->
    !END SUBROUTINE write_header
+!qepy <--
 
 
+!qepy -->
    !SUBROUTINE write_gvecs(g,indx)
       !REAL(DP),INTENT(in) :: g(:,:)
       !INTEGER,INTENT(in) :: indx(:)
       !INTEGER ig
+!qepy <--
 
+!qepy -->
       !IF(binwrite)RETURN
+!qepy <--
 
+!qepy -->
       !WRITE(io,'(a)') ' G VECTORS'
       !WRITE(io,'(a)') ' ---------'
       !WRITE(io,'(a)') ' Number of G-vectors'
@@ -1239,14 +1340,20 @@
          !WRITE(io,'(3(1x,f20.15))') &
          !&tpi/alat*g(1,indx(ig)),tpi/alat*g(2,indx(ig)),tpi/alat*g(3,indx(ig))
       !ENDDO
+!qepy <--
 
+!qepy -->
       !WRITE(io,'(a)') ' '
    !END SUBROUTINE write_gvecs
+!qepy <--
 
 
+!qepy -->
    !SUBROUTINE write_gvecs_blip
       !IF(binwrite)RETURN
+!qepy <--
 
+!qepy -->
       !WRITE(io,'(a)') ' G VECTORS'
       !WRITE(io,'(a)') ' ---------'
       !WRITE(io,'(a)') ' Number of G-vectors'
@@ -1254,31 +1361,45 @@
       !WRITE(io,'(a)') ' Gx Gy Gz (au)'
       !WRITE(io,'(a)') ' Blip grid'
       !WRITE(io,'(3(1x,3i4))') blipgrid
+!qepy <--
 
+!qepy -->
       !WRITE(io,'(a)') ' '
    !END SUBROUTINE write_gvecs_blip
+!qepy <--
 
 
+!qepy -->
    !SUBROUTINE write_wfn_head
       !IF(binwrite)RETURN
+!qepy <--
 
+!qepy -->
       !WRITE(io,'(a)') ' WAVE FUNCTION'
       !WRITE(io,'(a)') ' -------------'
       !WRITE(io,'(a)') ' Number of k-points'
       !WRITE(io,*) nk
    !END SUBROUTINE write_wfn_head
+!qepy <--
 
 
+!qepy -->
    !SUBROUTINE write_pwfn_data(ik,ispin,ibnd,evc,indx)
       !INTEGER,INTENT(in) :: ik,ispin,ibnd
       !COMPLEX(DP),INTENT(in) :: evc(:)
       !INTEGER,INTENT(in) :: indx(:)
       !INTEGER ig,j,ikk
+!qepy <--
 
+!qepy -->
       !IF(binwrite)RETURN
+!qepy <--
 
+!qepy -->
       !CALL using_et(0)
+!qepy <--
 
+!qepy -->
       !ikk = ik + nk*(ispin-1)
       !IF(ispin==1.and.ibnd==1)THEN
          !WRITE(io,'(a)') ' k-point # ; # of bands (up spin/down spin); &
@@ -1287,7 +1408,9 @@
                !(tpi/alat*xk(j,ik),j=1,3)
       !ENDIF
       !IF(binwrite)RETURN
+!qepy <--
 
+!qepy -->
       !! KN: if you want to print occupancies, replace these two lines ...
       !WRITE(io,'(a)') ' Band, spin, eigenvalue (au)'
       !WRITE(io,*) ibnd, ispin, et(ibnd,ikk)/e2
@@ -1299,14 +1422,20 @@
          !WRITE(io,*)evc(indx(ig))
       !ENDDO
    !END SUBROUTINE write_pwfn_data
+!qepy <--
 
 
+!qepy -->
    !SUBROUTINE write_bwfn_data(ik,ispin,ibnd)
       !INTEGER,INTENT(in) :: ik,ispin,ibnd
       !INTEGER lx,ly,lz,ikk,j,l1,l2,l3
+!qepy <--
 
+!qepy -->
       !CALL using_et(0)
+!qepy <--
 
+!qepy -->
       !IF(binwrite)THEN
          !DO l3=1,blipgrid(3)
             !DO l2=1,blipgrid(2)
@@ -1315,7 +1444,9 @@
                !ENDDO
             !ENDDO
          !ENDDO
+!qepy <--
 
+!qepy -->
          !IF(single_precision_blips)THEN
             !WRITE(iob)cmplx(cavc_tmp(:,:,:),kind=sgl)
          !ELSE
@@ -1323,7 +1454,9 @@
          !ENDIF
          !RETURN
       !ENDIF
+!qepy <--
 
+!qepy -->
       !ikk = ik + nk*(ispin-1)
       !IF(ispin==1.and.ibnd==1)THEN
          !WRITE(io,'(a)') ' k-point # ; # of bands (up spin/down spin); &
@@ -1346,14 +1479,20 @@
          !ENDDO ! ly
       !ENDDO ! lx
    !END SUBROUTINE write_bwfn_data
+!qepy <--
 
 
+!qepy -->
    !SUBROUTINE write_bwfn_data_gamma(re_im,ik,ispin,ibnd)
       !INTEGER,INTENT(in) :: ik,ispin,ibnd,re_im
       !INTEGER lx,ly,lz,ikk,j,l1,l2,l3
+!qepy <--
 
+!qepy -->
       !CALL using_et(0)
+!qepy <--
 
+!qepy -->
       !IF(binwrite)THEN
          !IF(re_im==1)THEN
             !DO l3=1,blipgrid(3)
@@ -1372,7 +1511,9 @@
                !ENDDO
             !ENDDO
          !ENDIF
+!qepy <--
 
+!qepy -->
          !IF(single_precision_blips)THEN
             !WRITE(iob)real(avc_tmp(:,:,:),kind=sgl)
          !ELSE
@@ -1380,7 +1521,9 @@
          !ENDIF
          !RETURN
       !ENDIF
+!qepy <--
 
+!qepy -->
       !ikk = ik + nk*(ispin-1)
       !IF(ispin==1.and.ibnd==1)THEN
          !WRITE(io,'(a)') ' k-point # ; # of bands (up spin/down spin); &
@@ -1407,8 +1550,10 @@
          !ENDDO ! ly
       !ENDDO ! lx
    !END SUBROUTINE write_bwfn_data_gamma
+!qepy <--
 
 
+!qepy -->
    !SUBROUTINE create_index2(y,x_index)
       !DOUBLE PRECISION,INTENT(in) :: y(:,:)
       !INTEGER,INTENT(out) :: x_index(size(y,2))
@@ -1419,8 +1564,10 @@
       !ENDDO
       !CALL create_index(y2,x_index)
    !END SUBROUTINE create_index2
+!qepy <--
 
 
+!qepy -->
    !SUBROUTINE create_index(y,x_index)
  !!-----------------------------------------------------------------------------!
  !! This subroutine creates an index array x_index for the n items of data in   !
@@ -1506,28 +1653,38 @@
          !ENDIF! ir-l<ins_sort_thresh
       !ENDDO
    !END SUBROUTINE create_index
+!qepy <--
 
 
+!qepy -->
    !CHARACTER(20) FUNCTION i2s(n)
       !INTEGER,INTENT(in) :: n
       !INTEGER m,j
+!qepy <--
 
+!qepy -->
       !m = abs(n)
       !DO j=len(i2s),2,-1
          !i2s(j:j)=achar(ichar('0')+mod(m,10))
          !m=m/10
          !IF(m==0)exit
       !ENDDO
+!qepy <--
 
+!qepy -->
       !IF(n<0)THEN
          !j = j-1
          !i2s(j:j)='-'
       !ENDIF
+!qepy <--
 
+!qepy -->
       !i2s=i2s(j:len(i2s))
    !END FUNCTION i2s
+!qepy <--
 
 
+!qepy -->
    !CHARACTER(72) FUNCTION write_mean(av,std_err_in_mean,err_prec_in)
 !!-----------------------------------------------------------------------------!
 !! Write out a mean value with the standard error in the mean in the form      !
@@ -1541,12 +1698,16 @@
       !DOUBLE PRECISION av_quote
       !CHARACTER(1) sgn
       !CHARACTER(72) zero_pad
+!qepy <--
 
+!qepy -->
       !IF(std_err_in_mean<=0.d0)THEN
          !write_mean='ERROR: NON-POSITIVE ERROR BAR!!!'
          !RETURN
       !ENDIF ! Error is negative
+!qepy <--
 
+!qepy -->
       !IF(present(err_prec_in))THEN
          !IF(err_prec_in>=1)THEN
             !err_prec=err_prec_in
@@ -1557,7 +1718,9 @@
       !ELSE
          !err_prec=err_prec_default
       !ENDIF ! Accuracy of error supplied.
+!qepy <--
 
+!qepy -->
 !! Work out lowest digit of precision that should be retained in the
 !! mean (i.e. the digit in terms of which the error is specified).
 !! Calculate the error in terms of this digit and round.
@@ -1567,12 +1730,16 @@
          !lowest_digit_to_quote=lowest_digit_to_quote+1
          !err_quote=err_quote/10
       !ENDIF ! err_quote rounds up to next figure.
+!qepy <--
 
+!qepy -->
       !IF(err_quote>=10**err_prec.or.err_quote<10**(err_prec-1))THEN
          !write_mean='ERROR: BUG IN WRITE_MEAN!!!'
          !RETURN
       !ENDIF ! Check error is in range.
+!qepy <--
 
+!qepy -->
 !! Truncate the mean to the relevant precision.  Establish its sign,
 !! then take the absolute value and work out the integer part.
       !av_quote=anint(av*10.d0**dble(-lowest_digit_to_quote)) &
@@ -1588,7 +1755,9 @@
          !RETURN
       !ENDIF ! Vast number
       !int_part=floor(av_quote)
+!qepy <--
 
+!qepy -->
       !IF(lowest_digit_to_quote<0)THEN
 !! If the error is in a decimal place then construct string using
 !! integer part and decimal part, noting that the latter may need to
@@ -1615,10 +1784,14 @@
          !write_mean=sgn//trim(i2s(int_part))//'(' &
             !&//trim(i2s(err_quote*10**lowest_digit_to_quote))//')'
       !ENDIF ! lowest_digit_to_quote<0
+!qepy <--
 
+!qepy -->
    !END FUNCTION write_mean
+!qepy <--
 
 
+!qepy -->
    !INTEGER FUNCTION no_digits_int(i)
    !!----------------------------------------------------------------------!
    !! Calculate the number of digits in integer i.  For i>0 this should be !
@@ -1635,9 +1808,11 @@
       !ENDDO
       !no_digits_int=k
    !END FUNCTION no_digits_int
+!qepy <--
 
 
 
+!qepy -->
    !SUBROUTINE init_rng(seed)
 !!--------------------------------------------!
 !! Initialize the RNG: see Knuth's ran_start. !
@@ -1691,8 +1866,10 @@
       !ENDDO ! j
       !ran_array_idx=Nkeep
    !END SUBROUTINE init_rng
+!qepy <--
 
 
+!qepy -->
    !REAL(dp) FUNCTION ranx()
 !!------------------------------------------------------------------------------!
 !! Return a random number uniformly distributed in [0,1).                       !
@@ -1709,8 +1886,10 @@
       !ran_array_idx=ran_array_idx+1
       !ranx=ran_array(ran_array_idx)
    !END FUNCTION ranx
+!qepy <--
 
 
+!qepy -->
    !SUBROUTINE gen_ran_array(ran_array,N)
 !!---------------------------------------------------------------!
 !! Generate an array of N random numbers: see Knuth's ran_array. !
@@ -1729,6 +1908,9 @@
          !ranstate(j)=mod(ran_array(N+j-KK)+ranstate(j-LL),1.d0)
       !ENDDO ! j
    !END SUBROUTINE gen_ran_array
+!qepy <--
 
 
+!qepy -->
 !END SUBROUTINE write_casino_wfn
+!qepy <--

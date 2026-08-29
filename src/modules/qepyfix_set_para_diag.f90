@@ -19,9 +19,9 @@ SUBROUTINE set_para_diag( nbnd, use_para_diag )
   USE mp_world,             ONLY : world_comm
   USE mp_exx,               ONLY : negrp
   USE command_line_options, ONLY : ndiag_
-  !qepy fix --> import
+!qepy -->
   USE laxlib_processors_grid, ONLY : lax_is_initialized
-  !qepy fix <-- import
+!qepy <--
 
   IMPLICIT NONE
 
@@ -36,11 +36,11 @@ SUBROUTINE set_para_diag( nbnd, use_para_diag )
   LOGICAL :: do_diag_in_band_group = .TRUE.
   INTEGER :: np_ortho(2), ortho_parent_comm
 
-  !qepy fix --> check init
+!qepy -->
   !IF( .NOT. first ) RETURN
   !first = .FALSE.
   IF( lax_is_initialized ) RETURN
-  !qepy fix <-- check init
+!qepy <--
   !
   IF( negrp > 1 .OR. do_diag_in_band_group ) THEN
      ! one diag group per bgrp with strict hierarchy: POOL > BAND > DIAG

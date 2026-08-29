@@ -11,7 +11,9 @@
 !----------------------------------------------------------------------------
 !
 !----------------------------------------------------------------------------
+!qepy -->
 SUBROUTINE qepy_electrons()
+!qepy <--
   !----------------------------------------------------------------------------
   !! General self-consistency loop, also for hybrid functionals.  
   !! For non-hybrid functionals it just calls \(\texttt{electron_scf}\).
@@ -57,8 +59,10 @@ SUBROUTINE qepy_electrons()
   USE add_dmft_occ,         ONLY : dmft
   USE rism_module,          ONLY : lrism, rism_calc3d
   !
+!qepy -->
   USE qepy_common,          ONLY : embed
   !
+!qepy <--
   IMPLICIT NONE
   !
   ! ... a few local variables
@@ -84,13 +88,14 @@ SUBROUTINE qepy_electrons()
   LOGICAL :: DoLoc
   !
   !
-  !qepy --> TODO: hybrid iterative
+!qepy -->
+! TODO: hybrid iterative
   if ( embed%iterative ) then
      CALL errore( 'qepy_electrons', 'Sorry, Hybrid XC not support iterative mode now',1)
   elseif ( embed%exttype > 1 ) then
      CALL errore( 'qepy_electrons', 'Hybrid mode only support external potential and local pseudopotential',1)
   end if
-  !qepy <-- TODO: hybrid iterative
+!qepy <--
   DoLoc = local_thr.gt.0.0d0
   exxen = 0.0d0
   iter = 0
@@ -195,7 +200,9 @@ SUBROUTINE qepy_electrons()
      ! ... Self-consistency loop. For hybrid functionals the exchange potential
      ! ... is calculated with the orbitals at previous step (none at first step)
      !
+!qepy -->
      CALL qepy_electrons_scf ( printout, exxen )
+!qepy <--
      !
      IF ( .NOT. xclib_dft_is('hybrid') ) RETURN
      !
@@ -249,7 +256,9 @@ SUBROUTINE qepy_electrons()
         ! Recalculate potential because XC functional has changed,
         ! start self-consistency loop on exchange
         !
+!qepy -->
         CALL qepy_v_of_rho( rho, rho_core, rhog_core, &
+!qepy <--
              ehart, etxc, vtxc, eth, etotefield, charge, v)
         etot = etot + etxc + exxen
         !
@@ -390,10 +399,14 @@ SUBROUTINE qepy_electrons()
 9120 FORMAT(/'     EXX convergence NOT achieved after ',i3,' iterations: stopping' )
 9121 FORMAT(/'     scf convergence threshold =',1PE17.1,' Ry' )
   !
+!qepy -->
 END SUBROUTINE qepy_electrons
+!qepy <--
 !
 !----------------------------------------------------------------------------
+!qepy -->
 SUBROUTINE qepy_electrons_scf ( printout, exxen )
+!qepy <--
   !----------------------------------------------------------------------------
   !! This routine is a driver of the self-consistent cycle.  
   !! It uses the routine \(\texttt{c_bands}\) for computing the bands at fixed
@@ -493,8 +506,10 @@ SUBROUTINE qepy_electrons_scf ( printout, exxen )
                                    oscdft_print_ns
 #endif
   !
+!qepy -->
   USE qepy_common,          ONLY : embed
   !
+!qepy <--
   IMPLICIT NONE
   !
   INTEGER, INTENT (IN) :: printout
@@ -505,7 +520,9 @@ SUBROUTINE qepy_electrons_scf ( printout, exxen )
   !
   ! ... local variables
   !
+!qepy -->
   REAL(DP),save :: dr2
+!qepy <--
   !! the norm of the diffence between potential
   REAL(DP) :: charge
   !! the total charge
@@ -517,7 +534,9 @@ SUBROUTINE qepy_electrons_scf ( printout, exxen )
   !! counter on polarization
   INTEGER :: idum
   !! dummy counter on iterations
+!qepy -->
   INTEGER,save :: iter
+!qepy <--
   !! counter on iterations
   INTEGER :: nt
   !! counter on atomic types
@@ -525,7 +544,9 @@ SUBROUTINE qepy_electrons_scf ( printout, exxen )
   !
   REAL(DP) :: tr2_min
   !! estimated error on energy coming from diagonalization
+!qepy -->
   REAL(DP),save :: descf
+!qepy <--
   !! correction for variational energy
   REAL(DP) :: en_el=0.0_DP
   !! electric field contribution to the total energy
@@ -535,7 +556,9 @@ SUBROUTINE qepy_electrons_scf ( printout, exxen )
   !! auxiliary variables for calculating and storing temporary copies of
   !! the charge density and of the HXC-potential
   !
+!qepy -->
   TYPE(scf_type),save :: rhoin
+!qepy <--
   !! used to store rho_in of current/next iteration
   !
   ! ... external functions
@@ -547,6 +570,7 @@ SUBROUTINE qepy_electrons_scf ( printout, exxen )
   !! auxiliary variables for grimme-d3
   INTEGER:: atnum(1:nat), na
   !! auxiliary variables for grimme-d3
+!qepy -->
   LOGICAL,save :: lhb
   !!
   REAL(DP),save :: mixing_beta_new, mixing_beta_prev
@@ -562,11 +586,11 @@ SUBROUTINE qepy_electrons_scf ( printout, exxen )
   if (embed%mix_coef>0.0_DP) goto 100
   !!! If we change some parts to functions will make the code clean.
   !!! But to keep the structure of the code, we add many goto functions.
-  !qepy -->
 
   if (embed%initial) then
   embed%initial = .FALSE.
   mixing_beta_prev = mixing_beta
+!qepy <--
   !! if .TRUE. then background states are present (DFT+U)
   !
   lhb = .FALSE.
@@ -578,7 +602,9 @@ SUBROUTINE qepy_electrons_scf ( printout, exxen )
   !
   iter = 0
   dr2  = 0.0_dp
+!qepy -->
   descf = 0.0_dp
+!qepy <--
   IF ( restart ) CALL restart_in_electrons( iter, dr2, ethr, et )
   IF ( restart ) CALL using_et(2)
   !
@@ -593,17 +619,21 @@ SUBROUTINE qepy_electrons_scf ( printout, exxen )
   !
   ! ... calculates the ewald contribution to total energy
   !
+!qepy -->
   if (embed%lewald) then
+!qepy <--
   IF ( do_comp_esm ) THEN
      ewld = esm_ewald()
   ELSE
      ewld = ewald( alat, nat, nsp, ityp, zv, at, bg, tau, &
                 omega, g, gg, ngm, gcutm, gstart, gamma_only, strf )
   ENDIF
+!qepy -->
   endif
   if (iand(embed%exttype,1) == 1) then
      call qepy_setlocal()
   endif
+!qepy <--
   !
   IF ( llondon ) THEN
      elondon = energy_london( alat , nat , ityp , at ,bg , tau )
@@ -635,20 +665,24 @@ SUBROUTINE qepy_electrons_scf ( printout, exxen )
   FLUSH( stdout )
   !
   CALL open_mix_file( iunmix, 'mix', exst )
+!qepy -->
   else
   dr2 = embed%dnorm
   end if ! if (embed%initial)
+!qepy <--
   !
   !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   !%%%%%%%%%%%%%%%%%%%%          iterate !          %%%%%%%%%%%%%%%%%%%%%
   !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   !
+!qepy -->
   CALL qepy_v_of_rho_all( rho, rho_core, rhog_core, &
      ehart, etxc, vtxc, eth, etotefield, charge, v)
 
   if ( add_descf ) goto 112
 
 113 DO idum = 1, niter
+!qepy <--
      !
      IF ( check_stop_now() ) THEN
         conv_elec=.FALSE.
@@ -682,7 +716,9 @@ SUBROUTINE qepy_electrons_scf ( printout, exxen )
         ENDIF
         !
         ethr = MIN( ethr, 0.1D0*dr2 / MAX( 1.D0, nelec ) )
+!qepy -->
         ethr = MIN( ethr, embed%diag_conv)
+!qepy <--
         ! ... do not allow convergence threshold to become too small:
         ! ... iterative diagonalization may become unstable
         ethr = MAX( ethr, 1.D-13 )
@@ -690,8 +726,10 @@ SUBROUTINE qepy_electrons_scf ( printout, exxen )
      ENDIF
      !
      first = ( iter == 1 )
+!qepy -->
      !
      if (first) ethr = MAX( ethr, 1.D-6 )
+!qepy <--
      !
      ! ... deband = - \sum_v <\psi_v | V_h + V_xc |\psi_v> is calculated a
      ! ... first time here using the input density and potential ( to be
@@ -759,8 +797,10 @@ SUBROUTINE qepy_electrons_scf ( printout, exxen )
         ELSEIF ( dmft .AND. idum > 1) THEN
             WRITE( stdout, '(5X,"WARNING: electron_maxstep > 1 not recommended for dmft = .true.")')
         END IF
+!qepy -->
         !
         IF ( embed%task == 'nscf') RETURN
+!qepy <--
         !
         IF (.not. use_gpu) CALL sum_band()
         IF (      use_gpu) CALL sum_band_gpu()
@@ -862,6 +902,7 @@ SUBROUTINE qepy_electrons_scf ( printout, exxen )
         !
         deband = delta_e()
         !
+!qepy -->
 100     if ( embed%iterative ) then
            if (iter > 1 .and. (embed%mix_coef<0.0_DP)) then
               ! from second step directly return new density without mixing
@@ -870,11 +911,13 @@ SUBROUTINE qepy_electrons_scf ( printout, exxen )
         end if
         !
         !
+!qepy <--
         ! ... mix_rho mixes several quantities: rho in g-space, tauk (for
         ! ... meta-gga), ns and ns_nc (for lda+u) and becsum (for paw)
         ! ... The mixing is done on pool 0 only (image parallelization
         ! ... inside mix_rho => rho_ddot => PAW_ddot is no longer there)
         !
+!qepy -->
         !IF ( my_pool_id == root_pool ) CALL mix_rho( rho, rhoin, &
                 !mixing_beta, dr2, tr2_min, iter, nmix, iunmix, conv_elec )
         if (embed%mix_coef>0.0_DP) then
@@ -895,8 +938,11 @@ SUBROUTINE qepy_electrons_scf ( printout, exxen )
            endif
         end if
         !
+!qepy <--
         IF ( my_pool_id == root_pool ) CALL mix_rho( rho, rhoin, &
+!qepy -->
                 mixing_beta_new, dr2, tr2_min, iter, nmix, iunmix, conv_elec )
+!qepy <--
         ! ... Results are broadcast from pool 0 to others to prevent trouble
         ! ... on machines unable to yield the same results for the same 
         ! ... calculations on the same data, performed on different procs
@@ -944,16 +990,17 @@ SUBROUTINE qepy_electrons_scf ( printout, exxen )
               !
               ethr = 0.1D0*dr2 / MAX( 1.D0, nelec )
               !
-              !qepy <--
+!qepy -->
               ethr = MAX( ethr, 1.D-13 )
               !CALL close_mix_file( iunmix, 'delete' )
               !CALL open_mix_file( iunmix, 'mix', exst )
-              !qepy -->
+!qepy <--
               CYCLE scf_step
               !
            ENDIF
            !
         ENDIF
+!qepy -->
         !-----------------------------------------------------------------------
         if ( embed%iterative ) then
            IF ( embed%exttype==0 .and. conv_elec ) THEN
@@ -968,23 +1015,28 @@ SUBROUTINE qepy_electrons_scf ( printout, exxen )
            ENDIF
         end if
         !-----------------------------------------------------------------------
+!qepy <--
         !
         IF ( .NOT. conv_elec ) THEN
            !
            ! ... no convergence yet: calculate new potential from mixed
            ! ... charge density (i.e. the new estimate)
            !
+!qepy -->
            CALL qepy_v_of_rho_all( rhoin, rho_core, rhog_core, &
+!qepy <--
                           ehart, etxc, vtxc, eth, etotefield, charge, v )
            !
            IF (lrism) THEN
               CALL rism_calc3d(rhoin%of_g(:, 1), esol, vsol, v%of_r, dr2)
            ENDIF
            !
+!qepy -->
            !IF (okpaw) THEN
               !CALL PAW_potential( rhoin%bec, ddd_paw, epaw,etot_cmp_paw )
               !CALL PAW_symmetrize_ddd( ddd_paw )
            !ENDIF
+!qepy <--
            !
            ! ... estimate correction needed to have variational energy:
            ! ... T + E_ion (eband + deband) are calculated in sum_band
@@ -1015,7 +1067,9 @@ SUBROUTINE qepy_electrons_scf ( printout, exxen )
            !
            IF (lda_plus_u .AND. lda_plus_u_kind.EQ.2) nsg = nsgnew
            !
+!qepy -->
            CALL qepy_v_of_rho_all( rho,rho_core,rhog_core, &
+!qepy <--
                           ehart, etxc, vtxc, eth, etotefield, charge, v )
            !
            IF (lrism) THEN
@@ -1024,10 +1078,12 @@ SUBROUTINE qepy_electrons_scf ( printout, exxen )
            !
            vnew%of_r(:,:) = v%of_r(:,:) - vnew%of_r(:,:)
            !
+!qepy -->
            !IF (okpaw) THEN
               !CALL PAW_potential( rho%bec, ddd_paw, epaw, etot_cmp_paw )
               !CALL PAW_symmetrize_ddd( ddd_paw )
            !ENDIF
+!qepy <--
            !
            ! ... note that rho is here the output, not mixed, charge density
            ! ... so correction for variational energy is no longer needed
@@ -1042,6 +1098,7 @@ SUBROUTINE qepy_electrons_scf ( printout, exxen )
         !
      ENDDO scf_step
      !
+!qepy -->
      !plugin_etot = 0.0_dp
      !!
 !#if defined (__LEGACY_PLUGINS) 
@@ -1077,6 +1134,7 @@ SUBROUTINE qepy_electrons_scf ( printout, exxen )
      !!
      !IF (.not. use_gpu) CALL newd()
      !IF (      use_gpu) CALL newd_gpu()
+!qepy <--
      !
      IF ( lelfield ) en_el =  calc_pol ( )
      !
@@ -1088,8 +1146,10 @@ SUBROUTINE qepy_electrons_scf ( printout, exxen )
      !
      WRITE( stdout, 9000 ) get_clock( 'PWSCF' )
      !
+!qepy -->
      !IF ( conv_elec ) WRITE( stdout, 9101 )
 111  IF ( conv_elec ) WRITE( stdout, 9101 )
+!qepy <--
  
      IF ( conv_elec ) THEN 
            scf_error = dr2
@@ -1097,6 +1157,7 @@ SUBROUTINE qepy_electrons_scf ( printout, exxen )
      ENDIF  
 
      !
+!qepy -->
      embed%dnorm = dr2
      if ( embed%iterative ) then
         if ( embed%mix_coef < 0.0_DP ) return
@@ -1104,6 +1165,7 @@ SUBROUTINE qepy_electrons_scf ( printout, exxen )
      endif
      !
 112  IF ( conv_elec .OR. MOD( iter, iprint ) == 0 .OR. dmft_updated ) THEN
+!qepy <--
         !
         ! iverbosity == 0 for the PW code
         ! iverbosity >  2 for the HP code
@@ -1144,7 +1206,9 @@ SUBROUTINE qepy_electrons_scf ( printout, exxen )
         !
      ENDIF
      !
+!qepy -->
      if (embed%exttype<1 .and. (.not. embed%iterative) ) then
+!qepy <--
      IF ( ABS( charge - nelec ) / charge > 1.D-7 ) THEN
         WRITE( stdout, 9050 ) charge, nelec
         IF ( ABS( charge - nelec ) / charge > 1.D-3 ) THEN
@@ -1155,7 +1219,9 @@ SUBROUTINE qepy_electrons_scf ( printout, exxen )
            ENDIF
         ENDIF
      ENDIF
+!qepy -->
      endif
+!qepy <--
      !
      etot = eband + ( etxc - etxcc ) + ewld + ehart + deband + demet + descf
      ! for hybrid calculations, add the current estimate of exchange energy
@@ -1232,7 +1298,8 @@ SUBROUTINE qepy_electrons_scf ( printout, exxen )
      !
      etot = etot + plugin_etot 
      !
-     !qepy --> add extene
+!qepy -->
+! add extene
      hwf_energy = hwf_energy + plugin_etot
      extene = embed%extene
      IF (abs(extene)<1.D-15) THEN
@@ -1247,9 +1314,10 @@ SUBROUTINE qepy_electrons_scf ( printout, exxen )
      ENDIF
      etot = etot + extene
      hwf_energy = hwf_energy + extene
-     !qepy <-- add extene
      !
+!qepy <--
      CALL print_energies ( printout )
+!qepy -->
      IF ( ( conv_elec .OR. MOD(iter,iprint) == 0 ) .AND. printout > 1 ) THEN
         IF (abs(extene)>1.D-15) WRITE ( stdout , '(A,F17.8,A)') &
            '     external contribution     =',extene,' Ry'
@@ -1266,6 +1334,7 @@ SUBROUTINE qepy_electrons_scf ( printout, exxen )
            return
         endif
      endif
+!qepy <--
      !
      IF ( conv_elec ) THEN
         !
@@ -1309,12 +1378,12 @@ SUBROUTINE qepy_electrons_scf ( printout, exxen )
   WRITE( stdout, 9120 ) iter
   !
 10  FLUSH( stdout )
-  !qepy <--
+!qepy -->
   n_scf_steps = iter
   scf_error = dr2
   embed%etotal= etot
   embed%dnorm = dr2
-  !qepy -->
+!qepy <--
   !
   ! ... exiting: write (unless disabled) the charge density to file
   ! ... (also write ldaU ns coefficients and PAW becsum)
@@ -1323,7 +1392,9 @@ SUBROUTINE qepy_electrons_scf ( printout, exxen )
   !
   ! ... delete mixing info if converged, keep it if not
   !
+!qepy -->
   IF ( embed%finish) conv_elec = .true.
+!qepy <--
   IF ( conv_elec ) THEN
      CALL close_mix_file( iunmix, 'delete' )
   ELSE
@@ -1336,11 +1407,12 @@ SUBROUTINE qepy_electrons_scf ( printout, exxen )
   call destroy_scf_type ( rhoin )
   CALL stop_clock( 'electrons' )
   !
-  !qepy <-- reset embed
+!qepy -->
+! reset embed
   embed%initial = .TRUE.
   embed%finish = .FALSE.
   embed%mix_coef = -1.0
-  !qepy -->
+!qepy <--
   RETURN
   !
   ! ... formats
@@ -1878,9 +1950,12 @@ SUBROUTINE qepy_electrons_scf ( printout, exxen )
 9903 FORMAT( '     level-shifting contrib.   =',F17.8,' Ry' )
   END SUBROUTINE print_energies
   !
+!qepy -->
 END SUBROUTINE qepy_electrons_scf
+!qepy <--
 !
 !----------------------------------------------------------------------------
+!qepy -->
 !FUNCTION exxenergyace( )
   !!--------------------------------------------------------------------------
   !!! Compute exchange energy using ACE
@@ -1934,3 +2009,4 @@ END SUBROUTINE qepy_electrons_scf
   !domat = .FALSE.
   !!
 !END FUNCTION exxenergyace
+!qepy <--

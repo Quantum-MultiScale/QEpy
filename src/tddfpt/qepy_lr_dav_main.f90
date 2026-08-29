@@ -7,7 +7,9 @@
 !
 !--------------------------------------------------------------------
 
+!qepy -->
 SUBROUTINE qepy_lr_dav_main_initial(infile, my_world_comm)
+!qepy <--
   !---------------------------------------------------------------------
   ! Xiaochuan Ge, SISSA, 2013
   !---------------------------------------------------------------------
@@ -39,16 +41,18 @@ SUBROUTINE qepy_lr_dav_main_initial(infile, my_world_comm)
   USE environ_base_module,   ONLY : print_environ_summary
 #endif
   !
+!qepy -->
   USE qepy_sys,             ONLY : command_line
   USE qepy_common,          ONLY : embed_base, set_embed, messenger, p_embed => embed
   !
+!qepy <--
   IMPLICIT NONE
   INTEGER            :: ibnd_occ,ibnd_virt,ibnd,ip
   LOGICAL            :: rflag, nomsg
   complex(dp)            :: temp
   LOGICAL, EXTERNAL  :: check_gpu_support
-  !
-  !qepy --> set the input
+!qepy -->
+  ! set the input
   CHARACTER(len=*) :: infile
   INTEGER, INTENT(IN), OPTIONAL :: my_world_comm
   !type(embed_base), intent(inout), optional :: embed
@@ -63,7 +67,7 @@ SUBROUTINE qepy_lr_dav_main_initial(infile, my_world_comm)
   ELSE
   CALL mp_startup( start_images=.TRUE., images_only=.TRUE. )
   ENDIF
-  !qepy <-- set the input
+!qepy <--
 
   use_gpu = check_gpu_support()
   if(use_gpu) Call errore('lr_dav_main', 'turbo_davidson with GPU NYI', 1)
@@ -118,7 +122,7 @@ SUBROUTINE qepy_lr_dav_main_initial(infile, my_world_comm)
 
   !   Davidson loop
   if (precondition) write(stdout,'(/5x,"Precondition is used in the algorithm,")')
-!qepy --> split code
+!qepy -->
   !do while (.not. dav_conv .and. dav_iter .lt. max_iter)
     !dav_iter=dav_iter+1
       !if(if_check_orth) call check_orth()
@@ -136,13 +140,33 @@ SUBROUTINE qepy_lr_dav_main_initial(infile, my_world_comm)
       !endif
       !!
   !enddo
+!qepy <--
   ! call check_hermitian()
+!qepy -->
+!  ! Extract physical meaning from the solution
+!
+!  call interpret_eign('END')
+!  ! The check_orth at the end may take quite a lot of time in the case of
+!  ! USPP because we didn't store the S* vector basis. Turn this step on only
+!  ! in cases of debugging
+!  ! call check_orth()
+!  if(lplot_drho) call plot_drho()
+!
+! 100 continue
+!  !   Deallocate pw variables
+!  CALL clean_pw( .false. )
+!  WRITE(stdout,'(5x,"Finished linear response calculation...")')
+!  CALL stop_clock('lr_dav_main')
+!  CALL print_clock_lr()
+!  CALL stop_lr( .false. )
+!
+!qepy <--
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !Additional small-time subroutines
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!qepy --> unset command_line
+!qepy -->
 command_line = ' '
-!qepy <-- unset command_line
+!qepy <--
 CONTAINS
   SUBROUTINE lr_print_preamble()
 
@@ -180,17 +204,19 @@ CONTAINS
     ENDIF
 
   END SUBROUTINE lr_print_preamble
+!qepy -->
 !!-----------------------------------------------------------------------
 END SUBROUTINE qepy_lr_dav_main_initial
-!qepy <-- split code
+!qepy <--
   
+!qepy -->
+! The plot do in different place
 SUBROUTINE qepy_lr_dav_main_finalise
   USE io_global,             ONLY : stdout
   use lr_dav_variables,      ONLY : lplot_drho
   use lr_dav_routines,       ONLY : interpret_eign, plot_drho
   !
   IMPLICIT NONE
-  !qepy --> do in python
   !
   ! Extract physical meaning from the solution
   !call interpret_eign('END')
@@ -199,8 +225,9 @@ SUBROUTINE qepy_lr_dav_main_finalise
   ! in cases of debugging
   ! call check_orth() 
   !if(lplot_drho) call plot_drho()
-  !qepy <-- do in python
+!qepy <--
 
+!qepy -->
 100 continue
   !   Deallocate pw variables
   CALL clean_pw( .false. )
@@ -210,3 +237,4 @@ SUBROUTINE qepy_lr_dav_main_finalise
   !CALL stop_lr( .false. )
 END SUBROUTINE qepy_lr_dav_main_finalise
 
+!qepy <--

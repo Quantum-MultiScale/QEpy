@@ -20,11 +20,11 @@ qepy_v_of_rho_all.o
 
 QEPY_PROG_OBJS = pwscf.o
 
-QEPY_FIX_OBJS = wfcinit.o \
-setup.o \
-read_file_new.o \
-pw_restart_new.o \
-potinit.o
+QEPY_FIX_OBJS = qepyfix_wfcinit.o \
+qepyfix_setup.o \
+qepyfix_read_file_new.o \
+qepyfix_pw_restart_new.o \
+qepyfix_potinit.o
 
 CROSS_FPP_FILES = ../fftxlib/fft_types.fpp
 

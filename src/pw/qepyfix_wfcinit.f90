@@ -252,10 +252,10 @@ SUBROUTINE wfcinit()
      ! ... calculate starting wavefunctions (calls Hpsi)
      !
      CALL init_wfc ( ik )
-     !qepy fix --> lsda up==down
+!qepy -->
      IF ( lsda .and. ik > nks/2) &
          CALL get_buffer ( evc, nwordwfc, iunwfc, ik-nks/2 )
-     !qepy fix <-- lsda up==down
+!qepy <--
      !
      ! ... write  starting wavefunctions to file
      !

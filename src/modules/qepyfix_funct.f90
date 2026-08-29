@@ -634,12 +634,12 @@ CONTAINS
     CHARACTER(LEN=*), INTENT(IN) :: dft_
     LOGICAL, INTENT(IN), OPTIONAL :: nomsg
     !
-    !qepy fix --> reset values
+!qepy -->
     dft = 'not set'
     discard_input_dft = .FALSE.
     inlc  = notset
-    !qepy fix <-- reset values
 
+!qepy <--
     CALL set_dft_from_name( dft_ )
     IF (dft == 'not set') CALL errore( 'enforce_input_dft', 'cannot fix unset dft', 1 )
     discard_input_dft = .TRUE.

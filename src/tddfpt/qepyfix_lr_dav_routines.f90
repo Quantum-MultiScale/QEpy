@@ -619,7 +619,9 @@ contains
     use lr_dav_variables,  only : reference, vccouple_shift
     implicit none
     integer :: N,ia,ib
+!qepy -->
     real(8) :: array(N),temp_ele, ref_
+!qepy <--
     integer :: sort_order(N), temp_order
 
     do ia=1, N

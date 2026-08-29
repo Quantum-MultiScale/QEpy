@@ -6,7 +6,9 @@
 ! or http://www.gnu.org/copyleft/gpl.txt .
 !
 !----------------------------------------------------------------------------
+!qepy -->
 SUBROUTINE qepy_hinit1()
+!qepy <--
   !----------------------------------------------------------------------------
   !! Atomic configuration dependent hamiltonian initialization,
   !! potential, wavefunctions for Hubbard U.  
@@ -82,7 +84,9 @@ SUBROUTINE qepy_hinit1()
   !
   ! ... calculate the total local potential
   !
+!qepy -->
   CALL qepy_setlocal()
+!qepy <--
   !
   ! ... more position-dependent initializations
   !
@@ -145,5 +149,7 @@ SUBROUTINE qepy_hinit1()
   !
   RETURN
   !
+!qepy -->
 END SUBROUTINE qepy_hinit1
+!qepy <--
 

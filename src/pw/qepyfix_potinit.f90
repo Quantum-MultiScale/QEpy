@@ -55,9 +55,9 @@ SUBROUTINE potinit()
   USE paw_init,             ONLY : PAW_atomic_becsum
   USE paw_onecenter,        ONLY : PAW_potential
   !
-  !qepy fix --> import module
+!qepy -->
   USE klist,                ONLY : nelup, neldw
-  !qepy fix --> import module
+!qepy <--
   USE scf_gpum,             ONLY : using_vrs
   USE pwcom,                ONLY : report_mag 
   USE rism_module,          ONLY : lrism, rism_init3d, rism_calc3d
@@ -213,11 +213,11 @@ SUBROUTINE potinit()
      CALL errore( 'potinit', 'starting and expected charges differ', 1 )
      !
   END IF
-  !qepy fix --> scale charge for spin
+!qepy -->
   IF ( nspin == 2 ) THEN
      rho%of_g(1,2) = (nelup-neldw) / omega
   ENDIF
-  !qepy fix <-- scale charge for spin
+!qepy <--
   !
   ! ... bring starting rho from G- to R-space
   !

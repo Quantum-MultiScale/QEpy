@@ -6,7 +6,9 @@
 ! or http://www.gnu.org/copyleft/gpl.txt .
 !
 !----------------------------------------------------------------------------
+!qepy -->
 SUBROUTINE qepy_run_pwscf( exit_status )
+!qepy <--
   !----------------------------------------------------------------------------
   !! Author: Paolo Giannozzi  
   !! License: GNU  
@@ -74,10 +76,12 @@ SUBROUTINE qepy_run_pwscf( exit_status )
   USE oscdft_functions,  ONLY : oscdft_run_pwscf
 #endif
   !
+!qepy -->
   USE kinds,                ONLY : DP
   USE qepy_common,          ONLY : embed
   USE cellmd,               ONLY : cell_factor
   !
+!qepy <--
   IMPLICIT NONE
   !
   INTEGER, INTENT(OUT) :: exit_status
@@ -105,14 +109,14 @@ SUBROUTINE qepy_run_pwscf( exit_status )
   exit_status = 0
   IF ( ionode ) WRITE( UNIT = stdout, FMT = 9010 ) ntypx, npk, lmaxx
   !
-  !qepy --> lmovecell
+!qepy -->
   if (.not. lmovecell) then
      lmovecell = embed%lmovecell
   endif
   if (lmovecell) then
      if (cell_factor < 1.2d0 ) cell_factor = 2.d0
   endif
-  !qepy <-- lmovecell
+!qepy <--
   IF (ionode) CALL plugin_arguments()
   CALL plugin_arguments_bcast( ionode_id, intra_image_comm )
   !
@@ -183,12 +187,13 @@ SUBROUTINE qepy_run_pwscf( exit_status )
      CALL punch( 'config' )
      RETURN
   ENDIF
-  !qepy --> init force
+!qepy -->
   exit_status = 255
   !fix: force allocate with NaN
   force=0.0_dp
-  !qepy <-- init force
+!qepy <--
   !
+!qepy -->
   !main_loop: DO idone = 1, nstep
      !!
      !! ... electronic self-consistency or band structure calculation
@@ -370,6 +375,7 @@ SUBROUTINE qepy_run_pwscf( exit_status )
   !!
   !CALL qmmm_shutdown()
   !!
+!qepy <--
   RETURN
   !
 9010 FORMAT( /,5X,'Current dimensions of program PWSCF are:', &
@@ -380,10 +386,13 @@ SUBROUTINE qepy_run_pwscf( exit_status )
           &  /,5X,'The G-vectors are recalculated for the final unit cell', &
           &  /,5X,'Results may differ from those at the preceding step.' )
   !
+!qepy -->
 END SUBROUTINE qepy_run_pwscf
+!qepy <--
 !
 !
 !-------------------------------------------------------------
+!qepy -->
 !SUBROUTINE reset_gvectors( )
 !!-------------------------------------------------------------
   !!
@@ -575,3 +584,4 @@ END SUBROUTINE qepy_run_pwscf
   !DEALLOCATE( r_loc, m_loc )
   !!
 !END SUBROUTINE reset_starting_magnetization
+!qepy <--

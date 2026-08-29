@@ -1168,29 +1168,29 @@ MODULE pw_restart_new
       USE mp,              ONLY : mp_bcast
       USE dftd3_qe,        ONLY : dftd3_in, dftd3, dftd3_xc 
       USE dftd3_api,       ONLY : dftd3_init, dftd3_set_functional 
-      !qepy fix --> other parameters
+!qepy -->
       USE tsvdw_module,         ONLY : vdw_econv_thr
       USE input_parameters,     ONLY : verbosity, calculation, ion_dynamics, starting_ns_eigenvalue, &
                                        vdw_corr, london, k_points, assume_isolated, &  
                                        input_parameters_occupations => occupations, dftd3_threebody, &
                                        dftd3_version
-      !qepy fix <-- other parameters
+!qepy <--
       !
       IMPLICIT NONE
       LOGICAL, INTENT(OUT) :: wfc_is_collected
       !
-      !qepy fix --> declare dftd3
+!qepy -->
       !INTEGER  :: i, is, ik, ierr, dum1,dum2,dum3, dftd3_version
       INTEGER  :: i, is, ik, ierr, dum1,dum2,dum3
-      !qepy fix <-- declare dftd3
+!qepy <--
       LOGICAL  :: magnetic_sym, lvalid_input, dftd3_3body
       CHARACTER(LEN=37)  :: dft_name
       CHARACTER(LEN=256) ::dft_
-      !qepy fix --> declare vdw
+!qepy -->
       !CHARACTER(LEN=20) :: vdw_corr, occupations
       CHARACTER(LEN=20) ::  occupations
       INTEGER           :: npwx_g
-      !qepy fix <-- declare vdw
+!qepy <--
       CHARACTER(LEN=320):: filename
       REAL(dp) :: exx_fraction, screening_parameter
       TYPE (output_type)        :: output_obj 
@@ -1246,12 +1246,14 @@ MODULE pw_restart_new
       CALL volume (alat,at(:,1),at(:,2),at(:,3),omega)
       !!
       !! Basis set section
-      !qepy fix --> npwx is npwx_g
+!qepy -->
       !Here, npwx is npwx_g, which is greater than npwx in mpi
+!qepy <--
       CALL qexsd_copy_basis_set ( output_obj%basis_set, gamma_only, ecutwfc,&
            ecutrho, dffts%nr1,dffts%nr2,dffts%nr3, dfftp%nr1,dfftp%nr2,dfftp%nr3, &
+!qepy -->
            dum1,dum2,dum3, ngm_g, ngms_g, npwx_g, bg(:,1), bg(:,2), bg(:,3) )
-      !qepy fix <-- npwx is npwx_g
+!qepy <--
       ecutwfc = ecutwfc*e2
       ecutrho = ecutrho*e2
       dual = ecutrho/ecutwfc
@@ -1362,13 +1364,13 @@ MODULE pw_restart_new
       END IF
       CALL qexsd_copy_algorithmic_info ( output_obj%algorithmic_info, &
            real_space, tqr, okvan, okpaw )
-      !qepy fix --> additional parameters
+!qepy -->
       dftd3_version   = output_obj%dft%vdW%dftd3_version
       dftd3_threebody = output_obj%dft%vdW%dftd3_threebody
       !vdw_econv_thr   = output_obj%dft%vdW%ts_vdw_econv_thr
       !!ts_vdw_econv_thr not in output but in input
       vdw_econv_thr   = input_obj%dft%vdW%ts_vdw_econv_thr
-      !qepy fix <-- additional parameters
+!qepy <--
       !
       !! 3D-RISM
       IF ( output_obj%rism3d_ispresent ) THEN

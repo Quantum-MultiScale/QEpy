@@ -284,7 +284,7 @@ SUBROUTINE post_xml_init (  )
   USE rism3d_facade,        ONLY : lrism3d, rism3d_initialize, rism3d_read_to_restart
   USE xc_lib,               ONLY : xclib_dft_is_libxc, xclib_init_libxc
   !
-  !qepy fix --> import
+!qepy -->
   USE control_flags,        ONLY : mixing_beta, tr2, ethr, niter, nmix, &
                                    iprint, conv_elec, &
                                    restart, io_level, do_makov_payne,  &
@@ -299,15 +299,15 @@ SUBROUTINE post_xml_init (  )
   USE funct,                ONLY : get_dft_short
   USE tsvdw_module,         ONLY : tsvdw_initialize
   USE xc_lib,               ONLY : xclib_dft_is
-  !qepy fix <-- import
+!qepy <--
   IMPLICIT NONE
   !
   REAL(DP) :: ehart, etxc, vtxc, etotefield, charge
   CHARACTER(LEN=37) :: dft_name
-  !qepy fix --> variables
+!qepy -->
   CHARACTER(LEN=256):: dft_
   REAL (DP), EXTERNAL :: get_clock
-  !qepy fix <-- variables
+!qepy <--
   !
   ! ... initialize Libxc if needed
   !
@@ -379,11 +379,11 @@ SUBROUTINE post_xml_init (  )
   ! ... bring the charge density to real space
   !
   CALL rho_g2r ( dfftp, rho%of_g, rho%of_r )
-  !qepy fix --> tau to real space
+!qepy -->
   IF  ( xclib_dft_is('meta') ) THEN
      CALL rho_g2r (dfftp, rho%kin_g, rho%kin_r)
   ENDIF
-  !qepy fix <-- tau to real space
+!qepy <--
   !
   ! ... re-compute the local part of the pseudopotential vltot and
   ! ... the core correction charge (if any) - from hinit0.f90
@@ -420,14 +420,16 @@ SUBROUTINE post_xml_init (  )
   !
   ! ... recalculate the potential - FIXME: couldn't make ts-vdw work
   !
-  !qepy fix --> init vdw
   IF ( ts_vdw) THEN
+!qepy -->
       CALL tsvdw_initialize()
       CALL set_h_ainv()
      !CALL infomsg('read_file_new','*** vdW-TS term will be missing in potential ***')
      !ts_vdw = .false.
+!qepy <--
   END IF
   !
+!qepy -->
   !IF ( llondon ) THEN
   !   IF ( .NOT. ALLOCATED(C6_ij)) CALL init_london()
   !ENDIF
@@ -445,7 +447,7 @@ SUBROUTINE post_xml_init (  )
       dft_ = dftd3_xc ( dft_ )
       CALL dftd3_set_functional(dftd3, func=dft_, version=dftd3_version,tz=.false.)
   END IF
-  !qepy fix <-- init vdw
+!qepy <--
   CALL v_of_rho( rho, rho_core, rhog_core, &
        ehart, etxc, vtxc, eth, etotefield, charge, v )
   !

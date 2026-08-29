@@ -7,7 +7,9 @@
 !
 !
 !----------------------------------------------------------------------
+!qepy -->
 SUBROUTINE qepy_stress( sigma, icalc )
+!qepy <--
   !----------------------------------------------------------------------
   !! Computes the total stress.
   !
@@ -38,9 +40,9 @@ SUBROUTINE qepy_stress( sigma, icalc )
   USE rism_module,      ONLY : lrism, stres_rism
   USE esm,              ONLY : do_comp_esm, esm_bc ! for ESM stress
   USE esm,              ONLY : esm_stres_har, esm_stres_ewa, esm_stres_loclong 
-  !qepy --> use
+!qepy -->
   USE qepy_common,      ONLY : embed
-  !qepy <-- use
+!qepy <--
   !
   IMPLICIT NONE
   !
@@ -63,8 +65,8 @@ SUBROUTINE qepy_stress( sigma, icalc )
   INTEGER  :: atnum(1:nat)
   REAL(DP) :: latvecs(3,3)
   REAL(DP), ALLOCATABLE :: force_d3(:,:)
+!qepy -->
   !
-  !qepy --> init
   integer,intent(in),optional             :: icalc
   integer                                 :: calctype
   !
@@ -73,7 +75,7 @@ SUBROUTINE qepy_stress( sigma, icalc )
   else
      calctype = 0
   end if
-  !qepy <-- init
+!qepy <--
   !
   WRITE( stdout, '(//5x,"Computing stress (Cartesian axis) and pressure"/)' )
   !
@@ -215,13 +217,13 @@ SUBROUTINE qepy_stress( sigma, icalc )
   !
   ! ... Sum all terms
   !
-  !qepy --> remove some stress
+!qepy -->
   if (iand(calctype,1) /= 0) sigmaewa = 0.0 ! ewald
   if (iand(calctype,2) /= 0) sigmaloc = 0.0 ! local
   if (iand(calctype,4) /= 0) sigmahar = 0.0 ! hartree
   if (iand(calctype,8) /= 0) sigmaxc  = 0.0 ! exc-cor
   if (iand(calctype,8) /= 0) sigmaxcc = 0.0 ! corecor
-  !qepy <-- remove some stress
+!qepy <--
   sigma(:,:) = sigmakin(:,:) + sigmaloc(:,:) + sigmahar(:,:) +  &
                sigmaxc(:,:)  + sigmaxcc(:,:) + sigmaewa(:,:) +  &
                sigmanlc(:,:) + sigmah(:,:)   + sigmael(:,:)  +  &
@@ -229,9 +231,9 @@ SUBROUTINE qepy_stress( sigma, icalc )
                sigma_nonloc_dft(:,:) + sigma_ts(:,:) + sigma_mbd(:,:) + &
                sigmasol(:,:)
   !
-  !qepy --> add extstress
+!qepy -->
   sigma(:,:) = sigma(:,:) + embed%extstress
-  !qepy <-- add extstress
+!qepy <--
   IF (xclib_dft_is('hybrid')) THEN
      sigmaexx = exx_stress()
      CALL symmatrix( sigmaexx )
@@ -285,7 +287,7 @@ SUBROUTINE qepy_stress( sigma, icalc )
      WRITE(stdout,*) (sigmaion(l,1),sigmaion(l,2),sigmaion(l,3), l=1,3)
   ENDIF
   !
-  !qepy --> assignment
+!qepy -->
   call embed%stress%reset(0.d0)
   embed%stress%sigma            = sigma
   embed%stress%sigmakin         = sigmakin
@@ -306,7 +308,7 @@ SUBROUTINE qepy_stress( sigma, icalc )
   embed%stress%sigmael          = sigmael
   embed%stress%sigmaion         = sigmaion
   embed%stress%sigmaext         = embed%extstress
-  !qepy <-- assignment
+!qepy <--
   CALL stop_clock( 'stress' )
   !
   RETURN
@@ -328,4 +330,6 @@ SUBROUTINE qepy_stress( sigma, icalc )
          &   5x,'MDB     stress (kbar)',3f10.2/2(26x,3f10.2/)/ &
          &   5x,'3D-RISM stress (kbar)',3f10.2/2(26x,3f10.2/)) 
   !
+!qepy -->
 END SUBROUTINE qepy_stress
+!qepy <--

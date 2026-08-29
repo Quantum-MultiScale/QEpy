@@ -95,7 +95,8 @@ QEPYSRC = ${BUILDDIR}/fix/ ${BUILDDIR}/cmdx/ $(SRC_DIR) ${PLUGIN_DIR}
 vpath %.f90 ${QEPYSRC} $(QEDIR)/$(QESRC_DIR)
 
 QEPY_OBJS_NEW = ${QEPY_OBJS} ${QEPY_FIX_OBJS} ${QEPY_PROG_OBJS}
-LIB_OBJS = $(addprefix $(QEDIR)/$(QESRC_DIR)/, $(filter-out ${QEPY_OBJS_NEW}, ${LIB_OBJS_TEMP}))
+QEPY_OBJS_FIX = $(patsubst qepyfix_%,%,${QEPY_FIX_OBJS})
+LIB_OBJS = $(addprefix $(QEDIR)/$(QESRC_DIR)/, $(filter-out ${QEPY_OBJS_FIX}, $(filter-out ${QEPY_OBJS_NEW}, ${LIB_OBJS_TEMP})))
 
 WRAP_OBJS = $(QE_OBJS) $(QEPY_OBJS_NEW)
 WRAP_FPP_FILES = $(WRAP_OBJS:%.o=%.fpp)

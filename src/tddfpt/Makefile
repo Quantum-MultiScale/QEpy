@@ -11,7 +11,7 @@ lr_magnons_main.o \
 lr_main.o \
 turbo_spectrum.o
 
-QEPY_FIX_OBJS = lr_dav_routines.o
+QEPY_FIX_OBJS = qepyfix_lr_dav_routines.o
 
 QE_OBJS =  lr_dav_debug.o \
 lr_dav_variables.o

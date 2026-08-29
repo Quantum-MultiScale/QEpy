@@ -9,8 +9,8 @@ QEPY_PROG_OBJS = command_line_options.o \
 open_close_input_file.o \
 plugin_arguments.o
 
-QEPY_FIX_OBJS = set_para_diag.o \
-funct.o
+QEPY_FIX_OBJS = qepyfix_set_para_diag.o \
+qepyfix_funct.o
 
 QE_OBJS = cell_base.o \
 check_stop.o \
