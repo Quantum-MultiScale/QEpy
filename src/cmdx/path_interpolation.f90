@@ -37,6 +37,7 @@ SUBROUTINE images_interpolator()
   USE cell_base,              ONLY : at, alat
   USE int_global_variables
   USE splinelib
+  USE upf_utils,              ONLY : matches
   !
   IMPLICIT NONE
   !
@@ -45,7 +46,6 @@ SUBROUTINE images_interpolator()
   INTEGER             :: ierr
   REAL (DP)      :: R, delta_R, x
   LOGICAL             :: no_interpolation
-  LOGICAL, EXTERNAL   :: matches 
   CHARACTER (LEN=20)  :: cell_parameters
   CHARACTER (LEN=256) :: input_line
   !
@@ -293,7 +293,12 @@ SUBROUTINE images_interpolator()
   WRITE( UNIT = iunrestart, FMT = '(I4)' ) 0
   WRITE( UNIT = iunrestart, FMT = '(I4)' ) 0
   WRITE( UNIT = iunrestart, FMT = '(I4)' ) 0
+  ! FF 18/02/25 apply renewed syntax START
+  WRITE( UNIT = iunrestart, FMT = '("NUMBER OF IMAGES")' )
+  WRITE( UNIT = iunrestart, FMT = '(I4)' ) new_num_of_images
+  WRITE( UNIT = iunrestart, FMT = '("APPLY CONSTANT BIAS")' )
   WRITE( UNIT = iunrestart, FMT = '(A4)' ) 'F'
+  ! FF 18/02/25 apply renewed syntax END
   !
   WRITE( UNIT = iunrestart, FMT = '("ENERGIES, POSITIONS AND GRADIENTS")' )
   !

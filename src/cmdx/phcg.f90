@@ -30,6 +30,9 @@ SUBROUTINE phcg()
   !
   CALL mp_startup ( )
   CALL environment_start ( code )
+#if defined __CUDA
+  call errore('phcg','GPU execution not implemented',1)
+#endif
   !
   CALL cg_readin
   !
@@ -256,6 +259,7 @@ SUBROUTINE cg_dchi(dchi_dtau)
      ENDDO
      CLOSE (unit=iudyn)
   ENDIF
+  CALL stop_clock('cg_dchi')
   !
   RETURN
 END SUBROUTINE cg_dchi
@@ -480,7 +484,7 @@ SUBROUTINE newscf
   !-----------------------------------------------------------------------
   !! Set all kind of stuff needed by self-consistent (re-)calculation.
   !
-  USE basis, ONLY: starting_wfc 
+  USE starting_scf, ONLY: starting_wfc 
   USE cellmd,ONLY: lmovecell
   USE gvecs, ONLY: doublegrid
   USE gvect, ONLY: gstart
@@ -816,6 +820,8 @@ SUBROUTINE raman_cs2(w2,dynout)
   !
   DEALLOCATE (infrared)
   DEALLOCATE (raman_activity)
+  CALL stop_clock('raman_cs2')
+  !
   RETURN
 END SUBROUTINE raman_cs2
 

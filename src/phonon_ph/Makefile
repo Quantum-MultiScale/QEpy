@@ -1,6 +1,6 @@
 QESRC_DIR = PHonon/PH
 PNAME = qepy_phonon_ph
-QEPY_LIBS = -L$(BUILDDIR) $(MODS_LR)
+QEPY_LIBS = -L$(PYBUILDDIR) $(MODS_LR)
 QEPY_INCS = -I. -I$(QEDIR)/$(QESRC_DIR) $(INCS_MODS_LR) $(INCS_MODS_LR_QE)
 
 QEPY_OBJS = qepy_phonon.o
@@ -25,18 +25,14 @@ add_for_charges.o \
 add_zstar_ue.o \
 add_zstar_ue_us.o \
 addcore.o \
-addnlcc.o \
 addnlcc_zstar_eu_us.o \
-addusddens.o \
-addusddense.o \
+addusddens_pulay.o \
 addusdynmat.o \
 ahc.o \
 allocate_part.o \
 allocate_pert.o \
 allocate_phq.o \
-apply_trev.o \
 bcast_ph_input.o \
-c_bands_ph.o \
 cch_psi_all.o \
 check_if_partial_dyn.o \
 check_initial_status.o \
@@ -68,7 +64,8 @@ dielec.o \
 dielec_test.o \
 dnsq_bare.o \
 dnsq_orth.o \
-dnsq_scf.o \
+dnsq_orth_set_irr.o \
+dnsq_store.o \
 do_phonon.o \
 do_q2r.o \
 dpsi_orth.o \
@@ -77,6 +74,7 @@ drhodv.o \
 drhodvloc.o \
 drhodvnl.o \
 drhodvus.o \
+dump_drho.o \
 dvanqq.o \
 dvkb3.o \
 dvpsi_e.o \
@@ -91,6 +89,7 @@ dyndia.o \
 dynmat0.o \
 dynmat_hub_bare.o \
 dynmat_hub_scf.o \
+dynmat_nlcc.o \
 dynmat_us.o \
 dynmatcc.o \
 dynmatrix.o \
@@ -115,11 +114,11 @@ initialize_ph.o \
 io_dyn_mat.o \
 io_dyn_mat_old.o \
 io_pattern.o \
-non_scf_ph.o \
 obsolete.o \
 openfilq.o \
 pcgreen.o \
 ph_restart.o \
+ph_set_upert.o \
 phcom.o \
 phescf.o \
 phq_init.o \
@@ -133,10 +132,6 @@ prepare_q.o \
 prepare_sym_analysis.o \
 print_clock_ph.o \
 psidspsi.o \
-psym_dmag.o \
-psym_dmage.o \
-psymdvscf.o \
-psyme.o \
 psyme2.o \
 punch_plot_e.o \
 q2qstar_ph.o \
@@ -170,17 +165,10 @@ stop_ph.o \
 summarize.o \
 swfc.o \
 sym_and_write_zue.o \
-sym_def.o \
-sym_dmag.o \
-sym_dmage.o \
-sym_dns.o \
 sym_dns_wrapper.o \
-symdvscf.o \
 symdyn_munu.o \
 symdynph_gq.o \
-syme.o \
 syme2.o \
-syme_dns.o \
 symm.o \
 symmorphic_or_nzb.o \
 tra_write_matrix.o \

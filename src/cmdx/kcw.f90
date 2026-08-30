@@ -21,6 +21,13 @@ SUBROUTINE kcw()
   !! 3) calculation=ham: compute, interpolate and diagonalize the KC hamiltonian 
   !!
   !!  Code written by Nicola Colonna (EPFL April 2019) 
+  !!
+  !!  Non-collinear code written in 2022-24 by 
+  !!  Antimo Marrazzo (SISSA, UniTS) and Nicola Colonna (PSI)
+  !!  A. Marrazzo and N. Colonna, arXiv:2402.14575 (2024), Phys. Rev. Research 6, 033085 (2024)
+  !!
+  !!  Implementation of Symmetries by G. Cistaro and N. Colonna (EPFL/PSI 2024)
+  !!
   !
   USE mp_global,         ONLY : mp_startup,mp_global_end 
   USE environment,       ONLY : environment_start, environment_end
@@ -50,16 +57,16 @@ SUBROUTINE kcw()
   ! 2) Read the input file and the PW outputs
   CALL kcw_readin( ) 
   !
-  IF (calculation == 'cc') call setup_coulomb()
-  IF (calculation == 'wann2kcw') CALL wann2kcw ( )
-  IF (calculation == 'screen')   CALL kcw_screen ( )
+  IF (calculation == 'cc')       CALL setup_coulomb ()
+  IF (calculation == 'wann2kcw') CALL wann2kcw ()
+  IF (calculation == 'screen')   CALL kcw_screen ()
   IF (calculation == 'ham' )     CALL kcw_ham ()
   !
   CALL print_clock_kcw ( )
   !
   ! 5) Clean and Close 
   CALL mp_global_end()
-  CALL environment_end( code )
+  CALL environment_end( )
   !
 CONTAINS
 !
@@ -83,7 +90,10 @@ SUBROUTINE header
   WRITE( stdout,*) "                #+#   #+#           #+#    #+#         #+#+# #+#+#       " 
   WRITE( stdout,*) "               ###    ###           ########           ###   ###         "
   WRITE( stdout, '(/5x,"  Koopmans functional implementation based on DFPT; please cite this program as")')
-  WRITE( stdout, '(/5x,"   N.Colonna, R. De Gannaro, E. Linscott, and N. Marzari, JCTC 18, 5435 (2022) ")')
+  WRITE( stdout, '(/5x,"   N.Colonna, R. De Gennaro, E. Linscott, and N. Marzari, JCTC 18, 5435 (2022) ")')
+  WRITE( stdout, '(/5x,"                                                                               ")')
+  WRITE( stdout, '(/5x,"  If you use the non-collinear mode (with/without spin-orbit coupling) please cite")')
+  WRITE( stdout, '(/5x,"   A. Marrazzo and N. Colonna, Phys. Rev. Research 6, 033085 (2024)  ")')
   WRITE( stdout, '( 5x,"=--------------------------------------------------------------------------------=")')  
   ENDIF
   !

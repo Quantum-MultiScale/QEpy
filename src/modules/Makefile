@@ -1,7 +1,7 @@
 QESRC_DIR = Modules
 PNAME = qepy_modules
-QEPY_LIBS = -L$(BUILDDIR) -lqepy_upflib -lqepy_xclib -lqepy_fftxlib -lqepy_laxlib -lqepy_utilxlib -lqepy_mbd
-QEPY_INCS = -I. -I$(QEDIR)/$(QESRC_DIR) -I$(BUILDDIR)/upflib -I$(QEDIR)/upflib -I$(BUILDDIR)/xclib -I$(QEDIR)/XClib -I$(BUILDDIR)/fftxlib -I$(QEDIR)/FFTXlib/src -I$(BUILDDIR)/laxlib -I$(QEDIR)/LAXlib -I$(BUILDDIR)/utilxlib -I$(QEDIR)/UtilXlib -I$(BUILDDIR)/mbd -I$(QEDIR)/external/mbd/src
+QEPY_LIBS = -L$(PYBUILDDIR) -lqepy_upflib -lqepy_xclib -lqepy_fftxlib -lqepy_laxlib -lqepy_utilxlib -lqepy_mbd
+QEPY_INCS = -I. -I$(QEDIR)/$(QESRC_DIR) -I$(PYBUILDDIR)/upflib -I$(QEDIR)/upflib -I$(PYBUILDDIR)/xclib -I$(QEDIR)/XClib -I$(PYBUILDDIR)/fftxlib -I$(QEDIR)/FFTXlib/src -I$(PYBUILDDIR)/laxlib -I$(QEDIR)/LAXlib -I$(PYBUILDDIR)/utilxlib -I$(QEDIR)/UtilXlib -I$(PYBUILDDIR)/mbd -I$(QEDIR)/external/mbd/src
 
 QEPY_OBJS = qepy_sys.o
 
@@ -36,16 +36,15 @@ latgen.o
 LIB_OBJS_TEMP = additional_kpoints.o \
 allocate_fft_3drism.o \
 atom_weight.o \
+atomic_wfc_mod.o \
 autopilot.o \
 basic_algebra_routines.o \
 becmod.o \
-becmod_gpu.o \
-becmod_subs_gpu.o \
 bfgs_module.o \
 bspline.o \
 bz_form.o \
-capital.o \
 cell_base.o \
+cell_nose.o \
 check_stop.o \
 chempot.o \
 chempot_lauerism.o \
@@ -55,13 +54,13 @@ compute_dipole.o \
 constants.o \
 constraints_module.o \
 control_flags.o \
+copy_order_um_from_xml.o \
 corrdipole_laue.o \
 correctat0_vv.o \
 corrgxy0_laue.o \
 coulomb_vcut.o \
 cryst_to_car.o \
 cryst_to_car_2d.o \
-cuda_subroutines.o \
 customize_signals.o \
 data_structure_3drism.o \
 date_and_tim.o \
@@ -112,6 +111,7 @@ io_files.o \
 io_global.o \
 io_rism_xml.o \
 ions_base.o \
+ions_nose.o \
 kind.o \
 latgen.o \
 lauefft.o \
@@ -120,7 +120,7 @@ linpack.o \
 lj_forcefield.o \
 lj_solute.o \
 lmdif.o \
-matches.o \
+makov_payne.o \
 mbdlib.o \
 mdiis.o \
 mm_dispersion.o \
@@ -155,6 +155,7 @@ print_chempot_lauerism.o \
 print_chempot_vv.o \
 print_corr_vv.o \
 print_solvavg.o \
+printout_base.o \
 pw_dot.o \
 qeh5_module.o \
 qes_bcast_module.o \
@@ -209,14 +210,12 @@ solvavg.o \
 solvmol.o \
 sort.o \
 space_group.o \
-stack.o \
 summary_1drism.o \
 summary_3drism.o \
 suscept_g0.o \
 suscept_laue.o \
 suscept_laueint.o \
 suscept_vv.o \
-test_input_file.o \
 timestep.o \
 trimcheck.o \
 tsvdw.o \
@@ -228,7 +227,6 @@ wannier_gw.o \
 wannier_new.o \
 wave_gauge.o \
 wavefunctions.o \
-wavefunctions_gpu.o \
 wgauss.o \
 write_rism_type.o \
 ws_base.o \

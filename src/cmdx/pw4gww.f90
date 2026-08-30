@@ -69,7 +69,6 @@ SUBROUTINE gwl_punch()
   use control_flags, ONLY : gamma_only
   use uspp, ONLY : okvan
   use ldaU, ONLY : lda_plus_u
-  USE basis,                ONLY : swfcatom
   use scf, only : vrs, vltot, v, kedtau
   USE klist,                ONLY : xk, wk, nks, nkstot
   USE fft_base,             ONLY : dfftp
@@ -611,7 +610,6 @@ subroutine read_export (pp_file,kunit,uspp_spsi, ascii, single_file, raw)
   use mp,             ONLY : mp_sum, mp_max
   use mp_world,       ONLY : world_comm, nproc, mpime
   use ldaU,           ONLY : lda_plus_u
-  USE basis,          ONLY : swfcatom
   USE uspp_init,      ONLY : init_us_2
 
   implicit none
@@ -779,7 +777,8 @@ subroutine read_export (pp_file,kunit,uspp_spsi, ascii, single_file, raw)
      IF( (ik >= iks) .AND. (ik <= ike) ) THEN
 
        call davcio (evc, 2*nwordwfc, iunwfc, (ik-iks+1), - 1)
-       IF ( lda_plus_u ) CALL davcio( swfcatom, nwordatwfc, iunsat, (ik-iks+1), -1 )
+       ! IF ( lda_plus_u ) CALL davcio( swfcatom, nwordatwfc, iunsat, (ik-iks+1), -1 )
+       IF ( lda_plus_u ) call errore('pw4gww','DFT+U possibly unsupported',1)
        local_pw = ngk(ik-iks+1)
 
      ENDIF

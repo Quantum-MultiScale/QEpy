@@ -1,7 +1,7 @@
 QESRC_DIR = FFTXlib/src
 PNAME = qepy_fftxlib
-QEPY_LIBS = -L$(BUILDDIR) -lqepy_utilxlib
-QEPY_INCS = -I. -I$(QEDIR)/$(QESRC_DIR) -I$(BUILDDIR)/utilxlib -I$(QEDIR)/UtilXlib
+QEPY_LIBS = -L$(PYBUILDDIR) -lqepy_utilxlib
+QEPY_INCS = -I. -I$(QEDIR)/$(QESRC_DIR) -I$(PYBUILDDIR)/utilxlib -I$(QEDIR)/UtilXlib
 
 QEPY_OBJS = 
 

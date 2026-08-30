@@ -94,7 +94,7 @@ SUBROUTINE oscdft_et()
    CALL oscdft_close_file(final_type)
 
    CALL oscdft_et_print_clock()
-   CALL environment_end("OSCDFT_ET")
+   CALL environment_end( )
    CALL stop_pp
 #endif
 CONTAINS

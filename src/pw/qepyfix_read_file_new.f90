@@ -24,8 +24,6 @@ SUBROUTINE read_file()
   USE wavefunctions,    ONLY : evc
   USE pw_restart_new,   ONLY : read_collected_wfc
   !
-  USE wavefunctions_gpum, ONLY : using_evc
-  !
   IMPLICIT NONE
   !
   INTEGER :: ik
@@ -48,7 +46,6 @@ SUBROUTINE read_file()
      !
      WRITE( stdout, '(5x,A)') &
           'Reading collected, re-writing distributed wavefunctions'
-     CALL using_evc(1)
      DO ik = 1, nks
         CALL read_collected_wfc ( restart_dir(), ik, evc )
         CALL save_buffer ( evc, nwordwfc, iunwfc, ik )
@@ -85,8 +82,6 @@ SUBROUTINE read_file_ph( needwf_ph )
   USE pw_restart_new,   ONLY : read_collected_wfc
   USE fft_base,         ONLY : dffts
   !
-  USE wvfct_gpum,       ONLY : using_et, using_wg, using_wg_d
-  USE wavefunctions_gpum, ONLY : using_evc
   USE pw_restart_new,   ONLY : read_xml_file
   !
   IMPLICIT NONE
@@ -117,14 +112,9 @@ SUBROUTINE read_file_ph( needwf_ph )
   ! ... of k-points in the current pool
   !
   CALL divide_et_impera( nkstot, xk, wk, isk, nks )
-  CALL using_et(1)
   CALL poolscatter( nbnd, nkstot, et, nks, et )
-  CALL using_wg(1)
+  !$acc update device(et)
   CALL poolscatter( nbnd, nkstot, wg, nks, wg )
-#if defined(__CUDA)
-  ! Updating wg here. Should not be done and will be removed ASAP.
-  CALL using_wg_d(0)
-#endif
   !
   ! ... allocate_wfc_k also computes no. of plane waves and k+G indices
   ! ... FIXME: the latter should be read from file, not recomputed
@@ -145,7 +135,6 @@ SUBROUTINE read_file_ph( needwf_ph )
      !
      WRITE( stdout, '(5x,A)') &
           'Reading collected, re-writing distributed wavefunctions in '//TRIM(wfc_dir)
-     CALL using_evc(1)
      DO ik = 1, nks
         CALL read_collected_wfc ( restart_dir(), ik, evc )
         CALL save_buffer ( evc, nwordwfc, iunwfc, ik )
@@ -176,14 +165,11 @@ SUBROUTINE read_file_new ( needwf )
   !
   USE io_global,      ONLY : stdout
   USE io_files,       ONLY : nwordwfc, iunwfc, wfc_dir, tmp_dir, restart_dir
-  USE gvect,          ONLY : ngm, g
   USE gvecw,          ONLY : gcutw
   USE klist,          ONLY : nkstot, nks, xk, wk
   USE lsda_mod,       ONLY : isk
   USE wvfct,          ONLY : nbnd, et, wg
   USE pw_restart_new, ONLY : read_xml_file
-  !
-  USE wvfct_gpum,     ONLY : using_et, using_wg, using_wg_d
   !
   IMPLICIT NONE
   !
@@ -216,14 +202,9 @@ SUBROUTINE read_file_new ( needwf )
      ! ... of k-points in the current pool
      !
      CALL divide_et_impera( nkstot, xk, wk, isk, nks )
-     CALL using_et(1)
      CALL poolscatter( nbnd, nkstot, et, nks, et )
-     CALL using_wg(1)
+     !$acc update device(et)
      CALL poolscatter( nbnd, nkstot, wg, nks, wg )
-#if defined(__CUDA)
-     ! Updating wg here. Should not be done and will be removed ASAP.
-     CALL using_wg_d(0)
-#endif
      !
      ! ... allocate_wfc_k also computes no. of plane waves and k+G indices
      ! ... FIXME: the latter should be read from file, not recomputed
@@ -243,10 +224,10 @@ SUBROUTINE post_xml_init (  )
   !
   USE kinds,                ONLY : DP
   USE io_global,            ONLY : stdout
-  USE uspp_param,           ONLY : upf
+  USE uspp_param,           ONLY : upf, nhm, nsp
   USE read_pseudo_mod,      ONLY : readpp
-  USE uspp,                 ONLY : becsum
-  USE paw_variables,        ONLY : okpaw, ddd_PAW
+  USE uspp,                 ONLY : becsum, allocate_uspp
+  USE paw_variables,        ONLY : okpaw, ddd_paw
   USE paw_init,             ONLY : paw_init_onecenter, allocate_paw_internals
   USE paw_onecenter,        ONLY : paw_potential
   USE dfunct,               ONLY : newd
@@ -258,16 +239,16 @@ SUBROUTINE post_xml_init (  )
   USE ions_base,            ONLY : nat, nsp, tau, ityp
   USE cell_base,            ONLY : omega
   USE recvec_subs,          ONLY : ggen, ggens
-  USE gvect,                ONLY : ecutrho, gg, ngm, g, gcutm, mill, mill_d, &
-          ngm_g, ig_l2g, eigts1, eigts2, eigts3, gstart, gshells, g_d, gg_d
+  USE gvect,                ONLY : ecutrho, gg, ngm, g, gcutm, mill, ngm_g, &
+                                   ig_l2g, eigts1, eigts2, eigts3, gstart, gshells
   USE gvecs,                ONLY : ngms, gcutms 
   USE gvecw,                ONLY : ecutwfc
   USE fft_rho,              ONLY : rho_g2r
   USE fft_base,             ONLY : dfftp, dffts
-  USE scf,                  ONLY : rho, rho_core, rhog_core, v
+  USE scf,                  ONLY : rho, rho_core, rhog_core, tau_core, v
   USE io_rho_xml,           ONLY : read_scf
   USE vlocal,               ONLY : strf
-  USE control_flags,        ONLY : gamma_only
+  USE control_flags,        ONLY : gamma_only, use_gpu
   USE control_flags,        ONLY : ts_vdw, tqr, tq_smoothing, tbeta_smoothing
   USE cellmd,               ONLY : cell_factor, lmovecell
   USE wvfct,                ONLY : nbnd, nbndx, et, wg
@@ -283,31 +264,22 @@ SUBROUTINE post_xml_init (  )
   USE rism_module,          ONLY : rism_tobe_alive, rism_pot3d
   USE rism3d_facade,        ONLY : lrism3d, rism3d_initialize, rism3d_read_to_restart
   USE xc_lib,               ONLY : xclib_dft_is_libxc, xclib_init_libxc
+  USE atwfc_mod,            ONLY : init_tab_atwfc
+  USE beta_mod,             ONLY : init_tab_beta
+  USE klist,                ONLY : qnorm
   !
 !qepy -->
-  USE control_flags,        ONLY : mixing_beta, tr2, ethr, niter, nmix, &
-                                   iprint, conv_elec, &
-                                   restart, io_level, do_makov_payne,  &
-                                   iverbosity, textfor,     &
-                                   llondon, ldftd3, scf_must_converge, lxdm
-  
-  USE london_module,        ONLY : energy_london, init_london, C6_ij
-  USE dftd3_api,            ONLY : dftd3_init, dftd3_set_functional
-  USE dftd3_qe,             ONLY : dftd3_xc, dftd3, dftd3_in
-  USE xdm_module,           ONLY : energy_xdm, init_xdm
-  USE input_parameters,     ONLY : dftd3_threebody, dftd3_version
-  USE funct,                ONLY : get_dft_short
+  USE control_flags,        ONLY : llondon, ldftd3, lxdm
+  USE london_module,        ONLY : init_london
+  USE xdm_module,           ONLY : init_xdm
+!qepy <--
   USE tsvdw_module,         ONLY : tsvdw_initialize
   USE xc_lib,               ONLY : xclib_dft_is
-!qepy <--
   IMPLICIT NONE
   !
-  REAL(DP) :: ehart, etxc, vtxc, etotefield, charge
+  REAL(DP) :: ehart, etxc, vtxc, etotefield, charge, qmax
   CHARACTER(LEN=37) :: dft_name
-!qepy -->
-  CHARACTER(LEN=256):: dft_
-  REAL (DP), EXTERNAL :: get_clock
-!qepy <--
+  INTEGER :: ierr
   !
   ! ... initialize Libxc if needed
   !
@@ -348,12 +320,6 @@ SUBROUTINE post_xml_init (  )
   CALL allocate_fft()
   CALL ggen ( dfftp, gamma_only, at, bg, gcutm, ngm_g, ngm, &
        g, gg, mill, ig_l2g, gstart ) 
-#if defined(__CUDA)
-  ! FIXME: to be moved inside ggen
-  mill_d = mill
-  g_d    = g
-  gg_d   = gg
-#endif
   !$acc update device(mill, g, gg)
   !
   CALL ggens( dffts, gamma_only, at, g, gg, mill, gcutms, ngms ) 
@@ -364,8 +330,8 @@ SUBROUTINE post_xml_init (  )
   !
   ! ... allocate the potentials
   !
+  call allocate_uspp(use_gpu,noncolin,lspinorb,tqr,nhm,nsp,nat,nspin)
   CALL allocate_locpot()
-  CALL allocate_nlpot()
   IF (okpaw) THEN
      CALL allocate_paw_internals()
      CALL paw_init_onecenter()
@@ -379,11 +345,10 @@ SUBROUTINE post_xml_init (  )
   ! ... bring the charge density to real space
   !
   CALL rho_g2r ( dfftp, rho%of_g, rho%of_r )
-!qepy -->
+  ! ... bring tau to real space
   IF  ( xclib_dft_is('meta') ) THEN
      CALL rho_g2r (dfftp, rho%kin_g, rho%kin_r)
   ENDIF
-!qepy <--
   !
   ! ... re-compute the local part of the pseudopotential vltot and
   ! ... the core correction charge (if any) - from hinit0.f90
@@ -391,9 +356,21 @@ SUBROUTINE post_xml_init (  )
   CALL init_vloc()
   IF (tbeta_smoothing) CALL init_us_b0(ecutwfc,intra_bgrp_comm)
   IF (tq_smoothing) CALL init_us_0(ecutrho,intra_bgrp_comm)
-  CALL init_us_1(nat, ityp, omega, ngm, g, gg, intra_bgrp_comm)
+  !
+  ! qmax is the maximum |q+G|, for all G needed by the charge density
+  !
+  qmax = (qnorm+sqrt(ecutrho))*cell_factor
+  CALL init_us_1(nat, ityp, omega, qmax, intra_bgrp_comm)
+  !
+  ! fill interpolation table for beta functions 
+  ! qmax is the maximum |q+G|, for all G needed by the wavefunctions
+  !
+  qmax = (qnorm + sqrt(ecutwfc))*cell_factor
+  CALL init_tab_beta ( qmax, omega, intra_bgrp_comm, ierr )
+  !
   IF ( lda_plus_u .AND. ( Hubbard_projectors == 'pseudo' ) ) CALL init_q_aeps()
-  CALL init_tab_atwfc(omega, intra_bgrp_comm)
+  !
+  CALL init_tab_atwfc( qmax, omega, intra_bgrp_comm, ierr )
   !
   CALL struc_fact( nat, tau, nsp, ityp, ngm, g, bg, dfftp%nr1, dfftp%nr2,&
                    dfftp%nr3, strf, eigts1, eigts2, eigts3 )
@@ -421,34 +398,21 @@ SUBROUTINE post_xml_init (  )
   ! ... recalculate the potential - FIXME: couldn't make ts-vdw work
   !
   IF ( ts_vdw) THEN
-!qepy -->
       CALL tsvdw_initialize()
       CALL set_h_ainv()
      !CALL infomsg('read_file_new','*** vdW-TS term will be missing in potential ***')
      !ts_vdw = .false.
-!qepy <--
   END IF
   !
 !qepy -->
-  !IF ( llondon ) THEN
-  !   IF ( .NOT. ALLOCATED(C6_ij)) CALL init_london()
-  !ENDIF
-  !IF (lxdm) THEN
-  !   IF ( get_clock('init_xdm')< 0.0_DP) CALL init_xdm()
-  !ENDIF
-  !IF (ldftd3) !   IF ( .NOT. ALLOCATED(dftd3%r0ab)) THEN
-  IF (llondon) CALL init_london()
-  IF (lxdm) CALL init_xdm()
-  IF ( ldftd3)  THEN
-      if (dftd3_version==2) dftd3_threebody=.false.
-      dftd3_in%threebody = dftd3_threebody
-      CALL dftd3_init(dftd3, dftd3_in)
-      dft_ = get_dft_short( )
-      dft_ = dftd3_xc ( dft_ )
-      CALL dftd3_set_functional(dftd3, func=dft_, version=dftd3_version,tz=.false.)
-  END IF
+! come from the PW/src/input.f90
+  ! ... initialize arrays for XDM,DFT-D2, DFT-D3 dispersion corrections
+  !
+  IF ( lxdm )   CALL init_xdm ( )
+  IF ( llondon) CALL init_london ( )
+  IF ( ldftd3)  CALL dftd3_iosys ()
 !qepy <--
-  CALL v_of_rho( rho, rho_core, rhog_core, &
+  CALL v_of_rho( rho, rho_core, rhog_core, tau_core, &
        ehart, etxc, vtxc, eth, etotefield, charge, v )
   !
   ! ... recalculate the solvation potential (3D-RISM)
@@ -461,7 +425,7 @@ SUBROUTINE post_xml_init (  )
   !
   IF (okpaw) THEN
      becsum = rho%bec
-     CALL PAW_potential(rho%bec, ddd_PAW)
+     CALL PAW_potential(rho%bec, ddd_paw)
   ENDIF 
   CALL newd()
   !

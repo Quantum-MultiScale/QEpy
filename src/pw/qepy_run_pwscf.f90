@@ -16,8 +16,7 @@ SUBROUTINE qepy_run_pwscf( exit_status )
   !
   !! Run an instance of the Plane Wave Self-Consistent Field code 
   !! MPI initialization and input data reading is performed in the 
-  !! calling code - returns in exit_status the exit code for pw.x, 
-  !! returned in the shell. Values are:  
+  !! calling code - returns in exit_status the exit code for pw.x:
   !! * 0: completed successfully
   !! * 1: an error has occurred (value returned by the errore() routine)
   !! * 2-127: convergence error
@@ -29,6 +28,10 @@ SUBROUTINE qepy_run_pwscf( exit_status )
   !!     (note: in the future, check_stop_now could also return a value
   !!     to specify the reason of exiting, and the value could be used
   !!     to return a different value for different reasons)
+  !! @Note
+  !! 20/04/23 Unless preprocessing flag __RETURN_EXIT_STATUS is set (see
+  !! routine do_stop) pw.x no longer returns an exit status != 0  to the shell
+  !! @endnote
   !
   !! @Note
   !! 10/01/17 Samuel Ponce: Add Ford documentation
@@ -40,11 +43,11 @@ SUBROUTINE qepy_run_pwscf( exit_status )
   USE io_global,            ONLY : stdout, ionode, ionode_id
   USE parameters,           ONLY : ntypx, npk
   USE upf_params,           ONLY : lmaxx
+  USE upf_utils,            ONLY : matches
   USE cell_base,            ONLY : fix_volume, fix_area
   USE control_flags,        ONLY : conv_elec, gamma_only, ethr, lscf, treinit_gvecs
   USE control_flags,        ONLY : conv_ions, istep, nstep, restart, lmd, lbfgs,&
-                                   lensemb, lforce=>tprnfor, tstress
-  USE control_flags,        ONLY : io_level
+                                   lensemb, lforce, tstress
   USE cellmd,               ONLY : lmovecell
   USE command_line_options, ONLY : command_line
   USE force_mod,            ONLY : sigma, force
@@ -80,14 +83,12 @@ SUBROUTINE qepy_run_pwscf( exit_status )
   USE kinds,                ONLY : DP
   USE qepy_common,          ONLY : embed
   USE cellmd,               ONLY : cell_factor
-  !
 !qepy <--
   IMPLICIT NONE
   !
   INTEGER, INTENT(OUT) :: exit_status
   !! Gives the exit status at the end
   !
-  LOGICAL, EXTERNAL :: matches
   ! checks if first string is contained in the second
   !
   ! ... local variables
@@ -194,187 +195,187 @@ SUBROUTINE qepy_run_pwscf( exit_status )
 !qepy <--
   !
 !qepy -->
-  !main_loop: DO idone = 1, nstep
-     !!
-     !! ... electronic self-consistency or band structure calculation
-     !!
+!  main_loop: DO idone = 1, nstep
+!     !
+!     ! ... electronic self-consistency or band structure calculation
+!     !
 !#if defined (__OSCDFT)
-     !IF (use_oscdft) THEN
-        !CALL oscdft_run_pwscf(oscdft_ctx)
-     !ELSE
+!     IF (use_oscdft .AND. (oscdft_ctx%inp%oscdft_type==1)) THEN
+!        CALL oscdft_run_pwscf(oscdft_ctx)
+!     ELSE
 !#endif
-     !IF ( .NOT. lscf) THEN
-        !CALL non_scf()
-     !ELSE
-        !CALL electrons()
-     !END IF
+!     IF ( .NOT. lscf) THEN
+!        CALL non_scf()
+!     ELSE
+!        CALL electrons()
+!     END IF
 !#if defined (__OSCDFT)
-     !END IF
+!     END IF
 !#endif
-     !!
-     !! ... code stopped by user or not converged
-     !!
-     !IF ( check_stop_now() .OR. .NOT. conv_elec ) THEN
-        !IF ( check_stop_now() ) THEN
-            !exit_status = 255
-        !ELSE
-           !IF (dmft) THEN
-              !exit_status =  131
-           !ELSE
-              !exit_status = 2
-           !ENDIF
-        !ENDIF
-        !CALL qexsd_set_status(exit_status)
-        !IF(exx_is_active()) then
-          !CALL punch( 'all' )
-        !ELSE
-          !CALL punch( 'config' )
-        !ENDIF
-        !RETURN
-     !ENDIF
-     !!
-     !! ... file in CASINO format written here if required
-     !!
-     !IF ( lmd ) THEN
-        !CALL pw2casino( istep )
-     !ELSE
-        !CALL pw2casino( 0 )
-     !END IF
-     !!
-     !! ... ionic section starts here
-     !!
-     !CALL start_clock( 'ions' ); !write(*,*)' start ions' ; FLUSH(6)
-     !conv_ions = .TRUE.
-     !!
-     !! ... force calculation
-     !!
-     !IF ( lforce ) CALL forces()
-     !!
-     !! ... stress calculation
-     !!
-     !IF ( tstress ) CALL stress( sigma )
-     !!
-     !IF ( lmd .OR. lbfgs ) THEN
-        !!
-        !! ... add information on this ionic step to xml file
-        !!
-        !CALL add_qexsd_step( idone )
-        !!
-        !IF (fix_volume) CALL impose_deviatoric_stress( sigma )
-        !IF (fix_area)   CALL impose_deviatoric_stress_2d( sigma )
-        !!
-        !! ... save data needed for potential and wavefunction extrapolation
-        !!
-        !CALL update_file()
-        !!
-        !! ... ionic step (for molecular dynamics or optimization)
-        !!
-        !CALL move_ions ( idone, ions_status, optimizer_failed )
-        !conv_ions = ( ions_status == 0 ) .OR. &
-                    !( ions_status == 1 .AND. treinit_gvecs )
-        !!
-        !IF ( xclib_dft_is('hybrid') )  CALL stop_exx()
-        !!
-        !! ... save restart information for the new configuration
-        !!
-        !IF ( idone <= nstep .AND. .NOT. conv_ions ) THEN
-            !exit_status = 255
-            !CALL qexsd_set_status( exit_status )
-            !CALL punch( 'config-only' )
-        !END IF
-        !!
-     !END IF
-     !!
-     !CALL stop_clock( 'ions' ); !write(*,*)' stop ions' ; FLUSH(6)
-     !!
-     !! ... send out forces to MM code in QM/MM run
-     !!
-     !CALL qmmm_update_forces( force, rho%of_r, nspin, dfftp )
-     !!
-     !! ... exit condition (ionic convergence) is checked here
-     !!
-     !IF ( conv_ions .OR. optimizer_failed ) EXIT main_loop
-     !!
-     !! ... receive new positions from MM code in QM/MM run
-     !!
-     !CALL qmmm_update_positions()
-     !!
-     !! ... terms of the hamiltonian depending upon nuclear positions
-     !! ... are reinitialized here
-     !!
-     !IF ( lmd .OR. lbfgs ) THEN
-        !!
-        !IF ( ions_status == 1 ) THEN
-           !!
-           !! ... final scf calculation with G-vectors for final cell
-           !!
-           !lbfgs=.FALSE.; lmd=.FALSE.
-           !WRITE( UNIT = stdout, FMT=9020 ) 
-           !!
-           !CALL reset_gvectors( )
-           !!
-           !! ... read atomic occupations for DFT+U(+V)
-           !!
-           !IF ( lda_plus_u ) CALL read_ns()
-           !!
-        !ELSE IF ( ions_status == 2 ) THEN
-           !!
-           !! ... check whether nonzero magnetization is real
-           !!
-           !CALL reset_magn()
-           !!
-        !ELSE
-           !!
-           !IF ( treinit_gvecs ) THEN
-              !!
-              !! ... prepare for next step with freshly computed G vectors
-              !!
-              !IF ( lmovecell) CALL scale_h()
-              !CALL reset_gvectors ( )
-              !!
-           !ELSE
-              !!
-              !! ... update the wavefunctions, charge density, potential
-              !! ... update_pot initializes structure factor array as well
-              !!
-              !CALL update_pot()
-              !!
-              !! ... re-initialize atomic position-dependent quantities
-              !!
-              !CALL hinit1()
-              !!
-           !END IF
-           !!
-        !END IF
-        !!
-     !ENDIF
-     !! ... Reset convergence threshold of iterative diagonalization for
-     !! ... the first scf iteration of each ionic step (after the first)
-     !!
-     !ethr = 1.0D-6
-     !!
-     !CALL dev_buf%reinit( ierr )
-     !IF ( ierr .ne. 0 ) CALL infomsg( 'run_pwscf', 'Cannot reset GPU buffers! Some buffers still locked.' )
-     !!
-  !ENDDO main_loop
-  !!
-  !! Set correct exit_status
-  !!
-  !IF ( .NOT. conv_ions .OR. optimizer_failed ) THEN
-      !exit_status =  3
-  !ELSE
-      !! All good
-      !exit_status = 0
-   !END IF
-  !!
-  !! ... save final data file
-  !!
-  !CALL qexsd_set_status( exit_status )
-  !IF ( lensemb ) CALL beef_energies( )
-  !IF ( io_level > -2 ) CALL punch( 'all' )
-  !!
-  !CALL qmmm_shutdown()
-  !!
+!     !
+!     ! ... code stopped by user or not converged
+!     !
+!     IF ( check_stop_now() .OR. .NOT. conv_elec ) THEN
+!        IF ( check_stop_now() ) THEN
+!            exit_status = 255
+!        ELSE
+!           IF (dmft) THEN
+!              exit_status =  131
+!           ELSE
+!              exit_status = 2
+!           ENDIF
+!        ENDIF
+!        CALL qexsd_set_status(exit_status)
+!        IF(exx_is_active()) then
+!          CALL punch( 'all' )
+!        ELSE
+!          CALL punch( 'config' )
+!        ENDIF
+!        RETURN
+!     ENDIF
+!     !
+!     ! ... file in CASINO format written here if required
+!     !
+!     IF ( lmd ) THEN
+!        CALL pw2casino( istep )
+!     ELSE
+!        CALL pw2casino( 0 )
+!     END IF
+!     !
+!     ! ... ionic section starts here
+!     !
+!     CALL start_clock( 'ions' ); !write(*,*)' start ions' ; FLUSH(6)
+!     conv_ions = .TRUE.
+!     !
+!     ! ... force calculation
+!     !
+!     IF ( lforce ) CALL forces()
+!     !
+!     ! ... stress calculation
+!     !
+!     IF ( tstress ) CALL stress( sigma )
+!     !
+!     IF ( lmd .OR. lbfgs ) THEN
+!        !
+!        ! ... add information on this ionic step to xml file
+!        !
+!        CALL add_qexsd_step( idone )
+!        !
+!        IF (fix_volume) CALL impose_deviatoric_stress( sigma )
+!        IF (fix_area)   CALL impose_deviatoric_stress_2d( sigma )
+!        !
+!        ! ... save data needed for potential and wavefunction extrapolation
+!        !
+!        CALL update_file()
+!        !
+!        ! ... ionic step (for molecular dynamics or optimization)
+!        !
+!        CALL move_ions ( idone, ions_status, optimizer_failed )
+!        conv_ions = ( ions_status == 0 ) .OR. &
+!                    ( ions_status == 1 .AND. treinit_gvecs )
+!        !
+!        IF ( xclib_dft_is('hybrid') )  CALL stop_exx()
+!        !
+!        ! ... save restart information for the new configuration
+!        !
+!        IF ( idone <= nstep .AND. .NOT. conv_ions ) THEN
+!            exit_status = 255
+!            CALL qexsd_set_status( exit_status )
+!            CALL punch( 'config-only' )
+!        END IF
+!        !
+!     END IF
+!     !
+!     CALL stop_clock( 'ions' ); !write(*,*)' stop ions' ; FLUSH(6)
+!     !
+!     ! ... send out forces to MM code in QM/MM run
+!     !
+!     CALL qmmm_update_forces( force, rho%of_r, nspin, dfftp )
+!     !
+!     ! ... exit condition (ionic convergence) is checked here
+!     !
+!     IF ( conv_ions .OR. optimizer_failed ) EXIT main_loop
+!     !
+!     ! ... receive new positions from MM code in QM/MM run
+!     !
+!     CALL qmmm_update_positions()
+!     !
+!     ! ... terms of the hamiltonian depending upon nuclear positions
+!     ! ... are reinitialized here
+!     !
+!     IF ( lmd .OR. lbfgs ) THEN
+!        !
+!        IF ( ions_status == 1 ) THEN
+!           !
+!           ! ... final scf calculation with G-vectors for final cell
+!           !
+!           lbfgs=.FALSE.; lmd=.FALSE.
+!           WRITE( UNIT = stdout, FMT=9020 ) 
+!           !
+!           CALL reset_gvectors( )
+!           !
+!           ! ... read atomic occupations for DFT+U(+V)
+!           !
+!           IF ( lda_plus_u ) CALL read_ns()
+!           !
+!        ELSE IF ( ions_status == 2 ) THEN
+!           !
+!           ! ... check whether nonzero magnetization is real
+!           !
+!           CALL reset_magn()
+!           !
+!        ELSE
+!           !
+!           IF ( treinit_gvecs ) THEN
+!              !
+!              ! ... prepare for next step with freshly computed G vectors
+!              !
+!              IF ( lmovecell) CALL scale_h()
+!              CALL reset_gvectors ( )
+!              !
+!           ELSE
+!              !
+!              ! ... update the wavefunctions, charge density, potential
+!              ! ... update_pot initializes structure factor array as well
+!              !
+!              CALL update_pot()
+!              !
+!              ! ... re-initialize atomic position-dependent quantities
+!              !
+!              CALL hinit1()
+!              !
+!           END IF
+!           !
+!        END IF
+!        !
+!     ENDIF
+!     ! ... Reset convergence threshold of iterative diagonalization for
+!     ! ... the first scf iteration of each ionic step (after the first)
+!     !
+!     ethr = 1.0D-6
+!     !
+!     CALL dev_buf%reinit( ierr )
+!     IF ( ierr .ne. 0 ) CALL infomsg( 'run_pwscf', 'Cannot reset GPU buffers! Some buffers still locked.' )
+!     !
+!  ENDDO main_loop
+!  !
+!  ! Set correct exit_status
+!  !
+!  IF ( .NOT. conv_ions .OR. optimizer_failed ) THEN
+!      exit_status =  3
+!  ELSE
+!      ! All good
+!      exit_status = 0
+!   END IF
+!  !
+!  ! ... save final data file
+!  !
+!  CALL qexsd_set_status( exit_status )
+!  IF ( lensemb ) CALL beef_energies( )
+!  CALL punch( 'all' )
+!  !
+!  CALL qmmm_shutdown()
+!  !
 !qepy <--
   RETURN
   !
@@ -395,193 +396,196 @@ END SUBROUTINE qepy_run_pwscf
 !qepy -->
 !SUBROUTINE reset_gvectors( )
 !!-------------------------------------------------------------
-  !!
-  !!! Prepare a new scf calculation with newly recomputed grids,
-  !!! restarting from scratch, not from available data of previous
-  !!! steps (dimensions and file lengths will be different in general)
-  !!! Useful as a check of variable-cell optimization: 
-  !!! once convergence is achieved, compare the final energy with the
-  !!! energy computed with G-vectors and plane waves for the final cell
-  !!
-  !USE io_global,  ONLY : stdout
-  !USE basis,      ONLY : starting_wfc, starting_pot
-  !USE fft_base,   ONLY : dfftp
-  !USE fft_base,   ONLY : dffts
-  !USE xc_lib,     ONLY : xclib_dft_is
-  !! 
-  !IMPLICIT NONE
-  !!
-  !! ... get magnetic moments from previous run before charge is deleted
-  !!
-  !CALL reset_starting_magnetization()
-  !!
-  !! ... clean everything (FIXME: clean only what has to be cleaned)
-  !!
-  !CALL clean_pw( .FALSE. )
-  !CALL close_files(.TRUE.)
-  !!
-  !IF (TRIM(starting_wfc) == 'file') starting_wfc = 'atomic+random'
-  !starting_pot='atomic'
-  !!
-  !! ... re-set FFT grids and re-compute needed stuff (FIXME: which?)
-  !!
-  !dfftp%nr1=0; dfftp%nr2=0; dfftp%nr3=0
-  !dffts%nr1=0; dffts%nr2=0; dffts%nr3=0
-  !!
-  !CALL init_run()
-  !!
-  !! ... re-set and re-initialize EXX-related stuff
-  !!
-  !IF ( xclib_dft_is('hybrid') ) CALL reset_exx( )
-  !!
+!  !
+!  !! Prepare a new scf calculation with newly recomputed grids,
+!  !! restarting from scratch, not from available data of previous
+!  !! steps (dimensions and file lengths will be different in general)
+!  !! Useful as a check of variable-cell optimization: 
+!  !! once convergence is achieved, compare the final energy with the
+!  !! energy computed with G-vectors and plane waves for the final cell
+!  !
+!  USE io_global,  ONLY : stdout
+!  USE starting_scf, ONLY : starting_wfc, starting_pot
+!  USE fft_base,   ONLY : dfftp
+!  USE fft_base,   ONLY : dffts
+!  USE xc_lib,     ONLY : xclib_dft_is
+!  ! 
+!  IMPLICIT NONE
+!  !
+!  ! ... get magnetic moments from previous run before charge is deleted
+!  !
+!  CALL reset_starting_magnetization()
+!  !
+!  ! ... clean everything (FIXME: clean only what has to be cleaned)
+!  !
+!  CALL clean_pw( .FALSE. )
+!  CALL close_files(.TRUE.)
+!  !
+!  IF (TRIM(starting_wfc) == 'file') starting_wfc = 'atomic+random'
+!  starting_pot='atomic'
+!  !
+!  ! ... re-set FFT grids and re-compute needed stuff (FIXME: which?)
+!  !
+!  dfftp%nr1=0; dfftp%nr2=0; dfftp%nr3=0
+!  dffts%nr1=0; dffts%nr2=0; dffts%nr3=0
+!  !
+!  CALL init_run()
+!  !
+!  ! ... re-set and re-initialize EXX-related stuff
+!  !
+!  IF ( xclib_dft_is('hybrid') ) CALL reset_exx( )
+!  !
 !END SUBROUTINE reset_gvectors
 !!
 !!
 !!-------------------------------------------------------------
 !SUBROUTINE reset_exx( )
 !!-------------------------------------------------------------
-  !USE fft_types,  ONLY : fft_type_deallocate 
-  !USE exx_base,   ONLY : exx_grid_init, exx_mp_init, exx_div_check, & 
-                         !coulomb_fac, coulomb_done 
-  !USE exx,        ONLY : dfftt, exx_fft_create, deallocate_exx 
-  !USE exx_band,   ONLY : igk_exx 
-  !! 
-  !IMPLICIT NONE
-  !!
-  !! ... re-set EXX-related stuff...
-  !!
-  !IF (ALLOCATED(coulomb_fac) ) DEALLOCATE( coulomb_fac, coulomb_done )
-  !CALL deallocate_exx( )
-  !IF (ALLOCATED(igk_exx)) DEALLOCATE(igk_exx) 
-  !dfftt%nr1=0; dfftt%nr2=0; dfftt%nr3=0 
-  !CALL fft_type_deallocate( dfftt ) ! FIXME: is this needed?
-  !!
-  !! ... re-compute needed EXX-related stuff
-  !!
-  !CALL exx_grid_init( REINIT = .TRUE. )
-  !CALL exx_mp_init()
-  !CALL exx_fft_create()
-  !CALL exx_div_check()
-  !! 
+!  USE fft_types,    ONLY : fft_type_deallocate 
+!  USE exx_base,     ONLY : exx_grid_init, exx_mp_init, exx_div_check, & 
+!                         exx_bgrp_type, EXX_BGRP_PAIRS
+!  USE exx,          ONLY : dfftt, exx_fft_create, deallocate_exx 
+!  USE exx_bp,       ONLY : coulomb_fac, coulomb_done
+!  USE exx_bp_utils, ONLY : igk_exx 
+!  ! 
+!  IMPLICIT NONE
+!  !
+!  ! ... re-set EXX-related stuff...
+!  !
+!  CALL deallocate_exx( )
+!  IF(exx_bgrp_type .eq. EXX_BGRP_PAIRS ) THEN
+!    IF (ALLOCATED(coulomb_fac) ) DEALLOCATE( coulomb_fac, coulomb_done )
+!    IF (ALLOCATED(igk_exx)) DEALLOCATE(igk_exx) 
+!  END IF
+!  dfftt%nr1=0; dfftt%nr2=0; dfftt%nr3=0 
+!  CALL fft_type_deallocate( dfftt ) ! FIXME: is this needed?
+!  !
+!  ! ... re-compute needed EXX-related stuff
+!  !
+!  CALL exx_grid_init( REINIT = .TRUE. )
+!  CALL exx_mp_init()
+!  CALL exx_fft_create()
+!  CALL exx_div_check()
+!  ! 
 !END SUBROUTINE reset_exx
 !!
 !!
 !!----------------------------------------------------------------
 !SUBROUTINE reset_magn()
-  !!----------------------------------------------------------------
-  !!! LSDA optimization: a final configuration with zero 
-  !!! absolute magnetization has been found and we check 
-  !!! if it is really the minimum energy structure by 
-  !!! performing a new scf iteration without any "electronic" history.
-  !!
-  !USE io_global,    ONLY : stdout
-  !USE dfunct,       ONLY : newd
-  !!
-  !IMPLICIT NONE
-  !!
-  !WRITE( UNIT = stdout, FMT = 9010 )
-  !WRITE( UNIT = stdout, FMT = 9020 )
-  !!
-  !! ... re-initialize the potential (no need to re-initialize wavefunctions)
-  !!
-  !CALL potinit()
-  !CALL newd()
-  !!
+!  !----------------------------------------------------------------
+!  !! LSDA optimization: a final configuration with zero 
+!  !! absolute magnetization has been found and we check 
+!  !! if it is really the minimum energy structure by 
+!  !! performing a new scf iteration without any "electronic" history.
+!  !
+!  USE io_global,    ONLY : stdout
+!  USE dfunct,       ONLY : newd
+!  !
+!  IMPLICIT NONE
+!  !
+!  WRITE( UNIT = stdout, FMT = 9010 )
+!  WRITE( UNIT = stdout, FMT = 9020 )
+!  !
+!  ! ... re-initialize the potential (no need to re-initialize wavefunctions)
+!  !
+!  CALL potinit()
+!  CALL newd()
+!  !
 !9010 FORMAT( /5X,'lsda relaxation :  a final configuration with zero', &
-           !& /5X,'                   absolute magnetization has been found' )
+!           & /5X,'                   absolute magnetization has been found' )
 !9020 FORMAT( /5X,'the program is checking if it is really ', &
-           !&     'the minimum energy structure',             &
-           !& /5X,'by performing a new scf iteration ',       & 
-           !&     'without any "electronic" history' )               
-  !!
+!           &     'the minimum energy structure',             &
+!           & /5X,'by performing a new scf iteration ',       & 
+!           &     'without any "electronic" history' )               
+!  !
 !END SUBROUTINE reset_magn
 !!
 !!
 !!-------------------------------------------------------------------
 !SUBROUTINE reset_starting_magnetization() 
-  !!-------------------------------------------------------------------
-  !!! On input, the scf charge density is needed.  
-  !!! On output, new values for starting_magnetization, angle1, angle2
-  !!! estimated from atomic magnetic moments - to be used in last step.
-  !!
-  !USE kinds,              ONLY : DP
-  !USE constants,          ONLY : pi
-  !USE ions_base,          ONLY : nsp, ityp, nat
-  !USE lsda_mod,           ONLY : nspin, starting_magnetization
-  !USE scf,                ONLY : rho
-  !USE noncollin_module,   ONLY : noncolin, angle1, angle2, domag
-  !!
-  !IMPLICIT NONE
-  !!
-  !! ... local variables
-  !!
-  !INTEGER  :: i, nt, iat
-  !! loop counter on species
-  !! number of atoms per species
-  !! loop counter on atoms
-  !REAL(DP) :: norm_tot, norm_xy
-  !! modulus of atomic magnetization
-  !! xy-projection of atomic magnetization
-  !REAL(DP) :: theta, phi
-  !! angle between magnetization and z-axis
-  !! angle between xy-magnetization and x-axis
-  !REAL(DP), ALLOCATABLE :: r_loc(:)
-  !! auxiliary array for density
-  !REAL(DP), ALLOCATABLE :: m_loc(:,:)
-  !! auxiliary array for magnetization
-  !!
-  !IF ( (noncolin .AND. domag) .OR. nspin==2) THEN
-     !ALLOCATE( r_loc(nat), m_loc(nspin-1,nat) )
-     !CALL get_locals( r_loc,m_loc, rho%of_r )
-  !ELSE
-     !RETURN
-  !ENDIF
-  !!
-  !DO i = 1, nsp
-     !!
-     !starting_magnetization(i) = 0.0_DP
-     !angle1(i) = 0.0_DP
-     !angle2(i) = 0.0_DP
-     !nt = 0
-     !!
-     !DO iat = 1, nat
-        !IF (ityp(iat) == i) THEN
-           !nt = nt + 1
-           !IF (noncolin) THEN
-              !norm_tot = SQRT(m_loc(1,iat)**2+m_loc(2,iat)**2+m_loc(3,iat)**2)
-              !norm_xy  = SQRT(m_loc(1,iat)**2+m_loc(2,iat)**2)
-              !IF (norm_tot > 1.d-10) THEN
-                 !theta = ACOS(m_loc(3,iat)/norm_tot)
-                 !IF (norm_xy > 1.d-10) THEN
-                    !phi = ACOS(m_loc(1,iat)/norm_xy)
-                    !IF (m_loc(2,iat) < 0.d0) phi = - phi
-                 !ELSE
-                    !phi = 2.d0*pi
-                 !ENDIF
-              !ELSE
-                 !theta = 2.d0*pi
-                 !phi = 2.d0*pi
-              !ENDIF
-              !angle1(i) = angle1(i) + theta
-              !angle2(i) = angle2(i) + phi
-              !starting_magnetization(i) = starting_magnetization(i) + &
-                                          !norm_tot/r_loc(iat)
-           !ELSE
-              !starting_magnetization(i) = starting_magnetization(i) + &
-                                          !m_loc(1,iat)/r_loc(iat)
-           !ENDIF
-        !ENDIF
-     !ENDDO
-     !!
-     !IF ( nt > 0 ) THEN
-        !starting_magnetization(i) = starting_magnetization(i) / DBLE(nt)
-        !angle1(i) = angle1(i) / DBLE(nt)
-        !angle2(i) = angle2(i) / DBLE(nt)
-     !ENDIF
-     !!
-  !ENDDO
-  !!
-  !DEALLOCATE( r_loc, m_loc )
-  !!
+!  !-------------------------------------------------------------------
+!  !! On input, the scf charge density is needed.  
+!  !! On output, new values for starting_magnetization, angle1, angle2
+!  !! estimated from atomic magnetic moments - to be used in last step.
+!  !
+!  USE kinds,              ONLY : DP
+!  USE constants,          ONLY : pi
+!  USE ions_base,          ONLY : nsp, ityp, nat
+!  USE lsda_mod,           ONLY : nspin, starting_magnetization
+!  USE scf,                ONLY : rho
+!  USE noncollin_module,   ONLY : noncolin, angle1, angle2, domag
+!  !
+!  IMPLICIT NONE
+!  !
+!  ! ... local variables
+!  !
+!  INTEGER  :: i, nt, iat
+!  ! loop counter on species
+!  ! number of atoms per species
+!  ! loop counter on atoms
+!  REAL(DP) :: norm_tot, norm_xy
+!  ! modulus of atomic magnetization
+!  ! xy-projection of atomic magnetization
+!  REAL(DP) :: theta, phi
+!  ! angle between magnetization and z-axis
+!  ! angle between xy-magnetization and x-axis
+!  REAL(DP), ALLOCATABLE :: r_loc(:)
+!  ! auxiliary array for density
+!  REAL(DP), ALLOCATABLE :: m_loc(:,:)
+!  ! auxiliary array for magnetization
+!  !
+!  IF ( (noncolin .AND. domag) .OR. nspin==2) THEN
+!     ALLOCATE( r_loc(nat), m_loc(nspin-1,nat) )
+!     CALL get_locals( r_loc,m_loc, rho%of_r )
+!  ELSE
+!     RETURN
+!  ENDIF
+!  !
+!  DO i = 1, nsp
+!     !
+!     starting_magnetization(i) = 0.0_DP
+!     angle1(i) = 0.0_DP
+!     angle2(i) = 0.0_DP
+!     nt = 0
+!     !
+!     DO iat = 1, nat
+!        IF (ityp(iat) == i) THEN
+!           nt = nt + 1
+!           IF (noncolin) THEN
+!              norm_tot = SQRT(m_loc(1,iat)**2+m_loc(2,iat)**2+m_loc(3,iat)**2)
+!              norm_xy  = SQRT(m_loc(1,iat)**2+m_loc(2,iat)**2)
+!              IF (norm_tot > 1.d-10) THEN
+!                 theta = ACOS(m_loc(3,iat)/norm_tot)
+!                 IF (norm_xy > 1.d-10) THEN
+!                    phi = ACOS(m_loc(1,iat)/norm_xy)
+!                    IF (m_loc(2,iat) < 0.d0) phi = - phi
+!                 ELSE
+!                    phi = 2.d0*pi
+!                 ENDIF
+!              ELSE
+!                 theta = 2.d0*pi
+!                 phi = 2.d0*pi
+!              ENDIF
+!              angle1(i) = angle1(i) + theta
+!              angle2(i) = angle2(i) + phi
+!              starting_magnetization(i) = starting_magnetization(i) + &
+!                                          norm_tot/r_loc(iat)
+!           ELSE
+!              starting_magnetization(i) = starting_magnetization(i) + &
+!                                          m_loc(1,iat)/r_loc(iat)
+!           ENDIF
+!        ENDIF
+!     ENDDO
+!     !
+!     IF ( nt > 0 ) THEN
+!        starting_magnetization(i) = starting_magnetization(i) / DBLE(nt)
+!        angle1(i) = angle1(i) / DBLE(nt)
+!        angle2(i) = angle2(i) / DBLE(nt)
+!     ENDIF
+!     !
+!  ENDDO
+!  !
+!  DEALLOCATE( r_loc, m_loc )
+!  !
 !END SUBROUTINE reset_starting_magnetization
 !qepy <--

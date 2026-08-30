@@ -1,7 +1,7 @@
 QESRC_DIR = XClib
 PNAME = qepy_xclib
-QEPY_LIBS = -L$(BUILDDIR) -lqepy_upflib
-QEPY_INCS = -I. -I$(QEDIR)/$(QESRC_DIR) -I$(BUILDDIR)/upflib -I$(QEDIR)/upflib
+QEPY_LIBS = -L$(PYBUILDDIR) -lqepy_upflib
+QEPY_INCS = -I. -I$(QEDIR)/$(QESRC_DIR) -I$(PYBUILDDIR)/upflib -I$(QEDIR)/upflib
 
 QEPY_OBJS = 
 

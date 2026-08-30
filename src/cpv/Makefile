@@ -1,6 +1,6 @@
 QESRC_DIR = CPV/src
 PNAME = qepy_cpv
-QEPY_LIBS = -L$(BUILDDIR) $(MODS_BASE)
+QEPY_LIBS = -L$(PYBUILDDIR) $(MODS_BASE)
 QEPY_INCS = -I. -I$(QEDIR)/$(QESRC_DIR) $(INCS_MODS_BASE) $(INCS_MODS_BASE_QE)
 
 QEPY_OBJS = 
@@ -14,14 +14,15 @@ QE_OBJS =
 
 LIB_OBJS_TEMP = berryion.o \
 bforceion.o \
-cell_nose.o \
 cg.o \
 cg_sub.o \
 chargedensity.o \
 cp_autopilot.o \
+cp_control.o \
 cp_emass.o \
 cp_interfaces.o \
 cp_restart_new.o \
+cp_wavefunctions.o \
 cplib.o \
 cplib_meta.o \
 cpr.o \
@@ -54,14 +55,12 @@ init.o \
 init_run.o \
 inner_loop_cold.o \
 input.o \
-ions_nose.o \
 ions_positions.o \
 ksstates.o \
 ldaU.o \
 ldaU_cp.o \
 ldaUpen.o \
 mainvar.o \
-makov_payne.o \
 metaxc.o \
 modules.o \
 move_electrons.o \
@@ -89,7 +88,6 @@ plugin_utilities.o \
 potentials.o \
 pres_ai_mod.o \
 print_out.o \
-printout_base.o \
 problem_size.o \
 pseudo_base.o \
 pseudopot.o \

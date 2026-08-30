@@ -45,9 +45,7 @@ SUBROUTINE qepy_setlocal()
 #endif
   !
 !qepy -->
-  !
   USE qepy_common,       ONLY : embed
-  !
 !qepy <--
   IMPLICIT NONE
   !
@@ -58,13 +56,11 @@ SUBROUTINE qepy_setlocal()
   INTEGER :: nt, ng
   ! counter on atom types
   ! counter on g vectors
+  !
 !qepy -->
   logical              :: have = .true.
-!qepy <--
   !
-!qepy -->
   if (iand(embed%exttype,1) == 1) have = .false.
-  !
   if (have) then
 !qepy <--
   ALLOCATE( aux(ngm) )

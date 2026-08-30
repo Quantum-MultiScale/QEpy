@@ -43,10 +43,10 @@ SUBROUTINE qepy_pwscf(infile, my_world_comm, embed)
   USE mp_global,            ONLY : mp_startup
   USE read_input,           ONLY : read_input_file
   USE command_line_options, ONLY : input_file_, command_line, nimage_
+  USE upf_utils,            ONLY : matches
   !
 !qepy -->
   USE qepy_common,          ONLY : embed_base, set_embed, messenger, p_embed => embed
-  !
 !qepy <--
   IMPLICIT NONE
   !
@@ -58,8 +58,6 @@ SUBROUTINE qepy_pwscf(infile, my_world_comm, embed)
   !! Status at exit
   LOGICAL :: use_images
   !! true if running "manypw.x"
-  LOGICAL, EXTERNAL :: matches
-  !! checks if first string is contained in the second
   !
 !qepy -->
   CHARACTER(len=*) :: infile
@@ -96,9 +94,6 @@ SUBROUTINE qepy_pwscf_finalise()
 END SUBROUTINE qepy_pwscf_finalise
 
 SUBROUTINE qepy_initial(input, embed)
-!qepy <--
-  !
-!qepy -->
   USE io_global,   ONLY : ionode
   USE mp_global,   ONLY : mp_startup
   USE environment, ONLY : environment_start, environment_end
@@ -106,35 +101,17 @@ SUBROUTINE qepy_initial(input, embed)
   USE io_files,    ONLY : tmp_dir, prefix
   USE check_stop,  ONLY : check_stop_init
   USE qepy_common, ONLY : embed_base, set_embed, messenger, p_embed => embed
-!qepy <--
-  !
-!qepy -->
   IMPLICIT NONE
-!qepy <--
-  !
-!qepy -->
   TYPE(input_base), OPTIONAL :: input
   type(embed_base), intent(inout), optional :: embed
-!qepy <--
-  !
-!qepy -->
   LOGICAL            :: start_images = .false.
   LOGICAL            :: images_only = .false.
-!qepy <--
-  !
-!qepy -->
   if (present(embed)) call set_embed(embed)
   if (.not. associated(p_embed)) call set_embed(messenger)
-!qepy <--
-  !
-!qepy -->
   IF (PRESENT(input)) THEN
      start_images = input%start_images
      images_only = input%start_images
-!qepy <--
   ENDIF
-  !
-!qepy -->
   IF ( PRESENT(input)) THEN
      IF (input%my_world_comm /= 0 ) THEN
         CALL mp_startup(my_world_comm=input%my_world_comm, start_images=start_images, images_only=images_only )
@@ -144,17 +121,11 @@ SUBROUTINE qepy_initial(input, embed)
   ELSE
      CALL mp_startup(start_images=start_images )
   ENDIF
-!qepy <--
-  !
-!qepy -->
   IF (PRESENT(input)) THEN
      prefix = input%prefix
      tmp_dir = input%tmp_dir
      CALL environment_start ( input%code )
   ENDIF
-!qepy <--
-  !
-!qepy -->
   CALL check_stop_init()
 END SUBROUTINE qepy_initial
 

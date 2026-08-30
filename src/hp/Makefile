@@ -1,6 +1,6 @@
 QESRC_DIR = HP/src
 PNAME = qepy_hp
-QEPY_LIBS = -L$(BUILDDIR) $(MODS_LR)
+QEPY_LIBS = -L$(PYBUILDDIR) $(MODS_LR)
 QEPY_INCS = -I. -I$(QEDIR)/$(QESRC_DIR) $(INCS_MODS_LR) $(INCS_MODS_LR_QE)
 
 QEPY_OBJS = 
@@ -33,6 +33,7 @@ hp_openfil_q.o \
 hp_postproc.o \
 hp_prepare_q.o \
 hp_print_clock.o \
+hp_psym_dmag.o \
 hp_psymdvscf.o \
 hp_q_points.o \
 hp_read_chi.o \
@@ -45,6 +46,7 @@ hp_solve_linear_system.o \
 hp_stop_smoothly.o \
 hp_summary.o \
 hp_summary_q.o \
+hp_sym_dmag.o \
 hp_symdnsq.o \
 hp_symdvscf.o \
 hp_write_chi.o \

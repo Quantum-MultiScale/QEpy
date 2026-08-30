@@ -1,1 +1,2 @@
-./qepyfix_funct.f90 : ~/q-e-qe-7.2/Modules/funct.f90
+./qepyfix_funct.f90 : ~/q-e-qe-7.6/Modules/funct.f90
+./qepyfix_set_para_diag.f90 : ~/q-e-qe-7.6/Modules/set_para_diag.f90

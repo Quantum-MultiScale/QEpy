@@ -83,7 +83,7 @@ SUBROUTINE wannier_plot()
 
   CALL stop_pp
 
-  CALL environment_end ( 'WANNIER_PLOT' )
+  CALL environment_end( )
 
   CALL wannier_clean()
 
@@ -103,7 +103,6 @@ SUBROUTINE plot_wannier(nc,n0)
   USE constants,     ONLY : rytoev , tpi
   USE buffers
   USE symm_base,     ONLY : nsym
-  USE basis,         ONLY : swfcatom
   USE fft_base,      ONLY : dffts, dfftp
   USE fft_interfaces,ONLY : invfft
   USE gvect

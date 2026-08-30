@@ -1,7 +1,7 @@
 QESRC_DIR = upflib
 PNAME = qepy_upflib
-QEPY_LIBS = -L$(BUILDDIR) -lqepy_utilxlib
-QEPY_INCS = -I. -I$(QEDIR)/$(QESRC_DIR) -I$(BUILDDIR)/utilxlib -I$(QEDIR)/UtilXlib
+QEPY_LIBS = -L$(PYBUILDDIR) -lqepy_utilxlib
+QEPY_INCS = -I. -I$(QEDIR)/$(QESRC_DIR) -I$(PYBUILDDIR)/utilxlib -I$(QEDIR)/UtilXlib
 
 QEPY_OBJS = 
 
@@ -12,44 +12,39 @@ uspp_param.o
 
 LIB_OBJS_TEMP = atom.o \
 atomic_number.o \
+atwfc_mod.o \
+beta_mod.o \
 casino_pp.o \
 dom.o \
 dqvan2.o \
 dylmr2.o \
-dylmr2_gpu.o \
 gen_us_dj.o \
 gen_us_dy.o \
 gth.o \
-init_tab_atwfc.o \
-init_tab_beta.o \
-init_tab_qrad.o \
 init_us_0.o \
 init_us_1.o \
-init_us_2_base.o \
-init_us_2_base_gpu.o \
+init_us_2_acc.o \
 init_us_b0.o \
-interp_atwfc.o \
-interp_atwfc_gpu.o \
 paw_variables.o \
 pseudo_types.o \
+qrad_mod.o \
 qvan2.o \
-qvan2_gpu.o \
 radial_grids.o \
 read_cpmd.o \
 read_fhi.o \
 read_ncpp.o \
 read_ps.o \
+read_psml.o \
 read_upf_new.o \
 read_upf_v1.o \
 read_uspp.o \
+rhoat_mod.o \
+rhoc_mod.o \
 simpsn.o \
-simpsn_gpu.o \
 sph_bes.o \
-sph_bes_gpu.o \
 sph_ind.o \
 spinor.o \
 splinelib.o \
-upf_acc_interfaces.o \
 upf_auxtools.o \
 upf_const.o \
 upf_error.o \
@@ -63,8 +58,8 @@ upf_spinorb.o \
 upf_to_internal.o \
 upf_utils.o \
 uspp.o \
-uspp_data.o \
 uspp_param.o \
+vloc_mod.o \
 write_upf_new.o \
 wxml.o \
 xmltools.o \

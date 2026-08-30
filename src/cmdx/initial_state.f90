@@ -78,7 +78,7 @@ SUBROUTINE initial_state()
   !
   CALL do_initial_state (excite)
   !
-  CALL environment_end ( 'initstate' )
+  CALL environment_end( )
   !
   CALL stop_pp
   !

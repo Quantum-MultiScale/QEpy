@@ -16,15 +16,14 @@
        !                - \sum rho%ns       v%ns       [for DFT+Hubbard]
        !                - \sum becsum       D1_Hxc     [for PAW]
        !
-       USE xc_lib,  ONLY : xclib_dft_is
-       !
+!qepy -->
   USE kinds,                ONLY : DP
   USE check_stop,           ONLY : check_stop_now, stopped_by_user
   USE io_global,            ONLY : stdout, ionode
-  USE cell_base,            ONLY : at, bg, alat, omega, tpiba2
+  USE cell_base,            ONLY : at, bg, alat, omega, tpiba2, pbc
   USE ions_base,            ONLY : zv, nat, nsp, ityp, tau, compute_eextfor, atm, &
                                    ntyp => nsp
-  USE basis,                ONLY : starting_pot
+  USE starting_scf,         ONLY : starting_pot
   USE bp,                   ONLY : lelfield
   USE fft_base,             ONLY : dfftp
   USE gvect,                ONLY : ngm, gstart, g, gg, gcutm
@@ -33,7 +32,7 @@
                                    two_fermi_energies, tot_charge
   USE fixed_occ,            ONLY : one_atom_occupations
   USE lsda_mod,             ONLY : lsda, nspin, magtot, absmag, isk
-  USE vlocal,               ONLY : strf
+  USE vlocal,               ONLY : strf, vloc
   USE wvfct,                ONLY : nbnd, et
   USE gvecw,                ONLY : ecutwfc
   USE ener,                 ONLY : etot, hwf_energy, eband, deband, ehart, &
@@ -42,26 +41,26 @@
                                    egrand, vsol, esol, esic, esci
   USE scf,                  ONLY : scf_type, scf_type_COPY, bcast_scf_type,&
                                    create_scf_type, destroy_scf_type, &
-                                   open_mix_file, close_mix_file, &
-                                   rho, rho_core, rhog_core, v, vltot, vrs, &
-                                   kedtau, vnew
+                                   scf_ns_copy, rho, rho_core, rhog_core, tau_core, &
+                                   v, vltot, vrs, kedtau, vnew
+  USE mix,                  ONLY : open_mix_file, close_mix_file, mix_rho
   USE control_flags,        ONLY : mixing_beta, tr2, ethr, niter, nmix, &
-                                   iprint, conv_elec, sic, &
+                                   conv_elec, sic, &
                                    restart, io_level, do_makov_payne,  &
                                    gamma_only, iverbosity, textfor,     &
                                    llondon, ldftd3, scf_must_converge, lxdm, ts_vdw, &
                                    mbd_vdw, use_gpu
-  USE control_flags,        ONLY : n_scf_steps, scf_error, scissor
+  USE control_flags,        ONLY : n_scf_steps, scf_error, scissor, gamma_only
   USE sci_mod,              ONLY : sci_iter
 
   USE io_files,             ONLY : iunmix, output_drho
   USE ldaU,                 ONLY : eth, lda_plus_u, lda_plus_u_kind, &
                                    niter_with_fixed_ns, hub_pot_fix, &
-                                   nsg, nsgnew, v_nsg, at_sc, neighood, &
-                                   ldim_u, is_hubbard_back
-  USE extfield,             ONLY : tefield, etotefield, gate, etotgatefield !TB
+                                   v_nsg, at_sc, neighood, &
+                                   ldim_u, is_hubbard_back, apply_U, orbital_resolved
+  USE extfield,             ONLY : tefield, dipfield, etotefield, gate, etotgatefield, edir !TB
   USE noncollin_module,     ONLY : noncolin, magtot_nc, i_cons,  bfield, &
-                                   lambda, report, domag, nspin_mag
+                                   lambda, report, domag, nspin_mag, npol
   USE io_rho_xml,           ONLY : write_scf
   USE uspp,                 ONLY : okvan
   USE mp_bands,             ONLY : intra_bgrp_comm
@@ -76,13 +75,49 @@
   USE tsvdw_module,         ONLY : EtsvdW
   !
   USE paw_variables,        ONLY : okpaw, ddd_paw, total_core_energy, only_paw
+  USE paw_onecenter,        ONLY : PAW_potential
+  USE paw_symmetry,         ONLY : PAW_symmetrize_ddd
+  USE dfunct,               ONLY : newd
+  USE esm,                  ONLY : do_comp_esm, esm_printpot, esm_ewald
+  USE printpot_module,      ONLY : printpot
+  USE gcscf_module,         ONLY : lgcscf, gcscf_mu, gcscf_ignore_mun, gcscf_set_nelec
+  USE clib_wrappers,        ONLY : memstat
+  USE fcp_module,           ONLY : lfcp, fcp_mu
+  USE rism_module,          ONLY : lrism, rism_calc3d, rism_printpot
+  USE iso_c_binding,        ONLY : c_int
+  !
+  USE plugin_variables,     ONLY : plugin_etot
+  USE libmbd_interface,     ONLY : EmbdvdW
+  USE add_dmft_occ,         ONLY : dmft, dmft_update, v_dmft, dmft_updated
+  !
+  USE device_fbuff_m,       ONLY : dev_buf, pin_buf
+  USE pwcom,                ONLY : report_mag 
+  USE makovpayne,           ONLY : makov_payne
+  !
+#if defined (__ENVIRON)
+  USE plugin_flags,         ONLY : use_environ
+  USE environ_base_module,  ONLY : calc_environ_energy, print_environ_energies
+  USE environ_pw_module,    ONLY : calc_environ_potential
+#endif
+#if defined (__OSCDFT)
+  USE plugin_flags,         ONLY : use_oscdft
+  USE oscdft_base,          ONLY : oscdft_ctx
+  USE oscdft_functions,     ONLY : oscdft_electrons,&
+                                   oscdft_scf_energy,&
+                                   oscdft_print_energies,&
+                                   oscdft_print_ns
+#endif
+  !
+!qepy <--
+       USE xc_lib,  ONLY : xclib_dft_is
        !
        IMPLICIT NONE
        !
        REAL(DP) :: delta_e
        REAL(DP) :: delta_e_hub
-       INTEGER  :: ir, na1, nt1, na2, nt2, m1, m2, equiv_na2, viz, is
+       INTEGER  :: ir, na1, nt1, na2, nt2, m1, m2, equiv_na2, viz, is, is1, i, j
        !
+!qepy -->
        REAL(DP) :: qepy_delta_e
        REAL(DP) :: vr(size(vrs,1),size(vrs,2))
        LOGICAL  :: lhb
@@ -94,6 +129,7 @@
              IF (is_hubbard_back(nt)) lhb = .TRUE.
           ENDDO
        ENDIF
+!qepy <--
        !
        delta_e = 0._DP
        IF ( nspin==2 ) THEN
@@ -117,10 +153,15 @@
        !
        IF (lda_plus_u .AND. (.NOT.hub_pot_fix)) THEN
          IF (lda_plus_u_kind.EQ.0) THEN
-            delta_e_hub = - SUM( rho%ns(:,:,:,:)*v%ns(:,:,:,:) )
-            IF (lhb) delta_e_hub = delta_e_hub - SUM(rho%nsb(:,:,:,:)*v%nsb(:,:,:,:))
-            IF (nspin==1) delta_e_hub = 2.d0 * delta_e_hub
-            delta_e = delta_e + delta_e_hub
+            IF (noncolin) THEN
+              delta_e_hub = - SUM( rho%ns_nc(:,:,:,:)*v%ns_nc(:,:,:,:) )
+              delta_e = delta_e + delta_e_hub              
+            ELSE        
+               delta_e_hub = - SUM( rho%ns(:,:,:,:)*v%ns(:,:,:,:) )
+               IF (lhb) delta_e_hub = delta_e_hub - SUM(rho%nsb(:,:,:,:)*v%nsb(:,:,:,:))
+               IF (nspin==1) delta_e_hub = 2.d0 * delta_e_hub
+               delta_e = delta_e + delta_e_hub
+            ENDIF  
          ELSEIF (lda_plus_u_kind.EQ.1) THEN
             IF (noncolin) THEN
               delta_e_hub = - SUM( rho%ns_nc(:,:,:,:)*v%ns_nc(:,:,:,:) )
@@ -132,24 +173,48 @@
             ENDIF
          ELSEIF (lda_plus_u_kind.EQ.2) THEN
             delta_e_hub = 0.0_dp
-            DO is = 1, nspin
-               DO na1 = 1, nat
-                  nt1 = ityp(na1)
-                  DO viz = 1, neighood(na1)%num_neigh
-                     na2 = neighood(na1)%neigh(viz)
-                     equiv_na2 = at_sc(na2)%at
-                     nt2 = ityp(equiv_na2)
-                     IF ( ANY(v_nsg(:,:,viz,na1,is).NE.0.0d0) ) THEN
-                        DO m1 = 1, ldim_u(nt1)
-                           DO m2 = 1, ldim_u(nt2)
-                              delta_e_hub = delta_e_hub - &
-                                  nsgnew(m2,m1,viz,na1,is)*v_nsg(m2,m1,viz,na1,is)
-                           ENDDO
+            IF (noncolin) THEN
+               DO is = 1, npol
+                  DO is1 = 1, npol
+                     i = npol * (is1-1) + is
+                     DO na1 = 1, nat
+                        nt1 = ityp(na1)
+                        DO viz = 1, neighood(na1)%num_neigh
+                           na2 = neighood(na1)%neigh(viz)
+                           equiv_na2 = at_sc(na2)%at
+                           nt2 = ityp(equiv_na2)
+                           IF ( ANY(v_nsg(:,:,viz,na1,i).NE.0.0d0) ) THEN
+                              DO m1 = 1, ldim_u(nt1)
+                                 DO m2 = 1, ldim_u(nt2)
+                                    delta_e_hub = delta_e_hub - &
+                                       rho%nsg(m2,m1,viz,na1,i)*v_nsg(m2,m1,viz,na1,i)
+                                 ENDDO
+                              ENDDO
+                           ENDIF
                         ENDDO
-                     ENDIF
+                     ENDDO
                   ENDDO
                ENDDO
-            ENDDO
+            ELSE
+               DO is = 1, nspin
+                  DO na1 = 1, nat
+                     nt1 = ityp(na1)
+                     DO viz = 1, neighood(na1)%num_neigh
+                        na2 = neighood(na1)%neigh(viz)
+                        equiv_na2 = at_sc(na2)%at
+                        nt2 = ityp(equiv_na2)
+                        IF ( ANY(v_nsg(:,:,viz,na1,is).NE.0.0d0) ) THEN
+                           DO m1 = 1, ldim_u(nt1)
+                              DO m2 = 1, ldim_u(nt2)
+                                 delta_e_hub = delta_e_hub - &
+                                     rho%nsg(m2,m1,viz,na1,is)*v_nsg(m2,m1,viz,na1,is)
+                              ENDDO
+                           ENDDO
+                        ENDIF
+                     ENDDO
+                  ENDDO
+               ENDDO
+            ENDIF
             IF (nspin==1) delta_e_hub = 2.d0 * delta_e_hub
             delta_e = delta_e + delta_e_hub
          ENDIF
