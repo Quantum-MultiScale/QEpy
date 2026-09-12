@@ -532,7 +532,8 @@ CONTAINS
    SUBROUTINE qepy_calc_effective_potential(potential, gather)
       USE kinds,                ONLY : DP
       USE ions_base,            ONLY : nat, ntyp => nsp
-      USE scf,                  ONLY : rho, rho_core, rhog_core, v, vltot, vrs
+      USE scf,                  ONLY : rho, rho_core, rhog_core, tau_core, v, vltot, &
+                                       vrs, kedtau, vnew
       USE ener,                 ONLY : etot, hwf_energy, eband, deband, ehart, &
                                        vtxc, etxc, etxcc, ewld, demet, epaw, &
                                        elondon, edftd3, ef_up, ef_dw
@@ -551,7 +552,7 @@ CONTAINS
       gather_ = .true.
       IF ( present(gather) ) gather_ = gather
       !
-      CALL qepy_v_of_rho_all( rho, rho_core, rhog_core, &
+      CALL qepy_v_of_rho_all( rho, rho_core, rhog_core, tau_core, &
          ehart, etxc, vtxc, eth, etotefield, charge, v)
       !
       IF ( present(potential) ) THEN

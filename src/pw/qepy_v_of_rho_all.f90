@@ -77,6 +77,10 @@ SUBROUTINE qepy_v_of_rho_all( rho, rho_core, rhog_core, tau_core, &
      CALL PAW_potential( rho%bec, ddd_paw, epaw, etot_cmp_paw )
      CALL PAW_symmetrize_ddd( ddd_paw )
   ENDIF
+!qepy --> 
+  ! add extpot
+  IF (ALLOCATED(embed%extpot)) v%of_r = v%of_r + embed%extpot
+!qepy <-- 
      ! ... define the total local potential (external + scf)
      !
      CALL set_vrs( vrs, vltot, v%of_r, kedtau, v%kin_r, dfftp%nnr, &

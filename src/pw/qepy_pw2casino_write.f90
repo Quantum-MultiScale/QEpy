@@ -479,6 +479,13 @@
       REAL(DP), EXTERNAL :: qepy_delta_e
       !
       REAL(DP), EXTERNAL :: efermig
+!qepy -->
+   IF( lsda )THEN
+      nk = nks/2
+   ELSE
+      nk = nks
+   ENDIF
+!qepy <--
 
 !qepy -->
 ! fix becp
