@@ -3,6 +3,8 @@ PNAME = qepy_gww_pw4gww
 QEPY_LIBS = -L$(PYBUILDDIR) -lqepy_phonon_gamma $(MODS_LR)
 QEPY_INCS = -I. -I$(QEDIR)/$(QESRC_DIR) -I$(PYBUILDDIR)/phonon_gamma -I$(QEDIR)/PHonon/Gamma $(INCS_MODS_LR) $(INCS_MODS_LR_QE)
 
+SKIPTYPES = 
+
 QEPY_OBJS = 
 
 QEPY_PROG_OBJS = pw4gww.o

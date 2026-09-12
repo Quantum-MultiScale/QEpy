@@ -66,8 +66,14 @@ endif
 if cc.has_argument('-Wno-typedef-redefinition')
   add_project_arguments('-Wno-typedef-redefinition', language : ['c', 'cpp'])
 endif
-if cc.has_argument('-Wunused-variable')
-  add_project_arguments('-Wunused-variable', language : ['c', 'cpp'])
+#if cc.has_argument('-Wunused-variable')
+  #add_project_arguments('-Wunused-variable', language : ['c', 'cpp'])
+#endif
+if cc.has_argument('-Wno-unused-variable')
+  add_project_arguments('-Wno-unused-variable', language : ['c', 'cpp'])
+endif
+if ff.has_argument('-Wno-unused-variable')
+  add_project_arguments('-Wno-unused-variable', language: 'fortran')
 endif
 
 ##--> update variables

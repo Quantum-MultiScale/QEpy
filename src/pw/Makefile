@@ -3,6 +3,8 @@ PNAME = qepy_pw
 QEPY_LIBS = -L$(PYBUILDDIR) -lqepy_ks_solvers -lqepy_dft_d3 $(MODS_BASE)
 QEPY_INCS = -I. -I$(QEDIR)/$(QESRC_DIR) -I$(PYBUILDDIR)/ks_solvers -I$(QEDIR)/KS_Solvers -I$(PYBUILDDIR)/dft_d3 -I$(QEDIR)/dft-d3 $(INCS_MODS_BASE) $(INCS_MODS_BASE_QE)
 
+SKIPTYPES = 
+
 QEPY_OBJS = qepy_common.o \
 qepy_mod.o \
 qepy_delta_e.o \
@@ -49,7 +51,8 @@ update_pot.o \
 v_of_rho.o \
 symm_base.o \
 symme.o \
-symmetrize_at.o
+symmetrize_at.o \
+starting_scf_mod.o
 
 LIB_OBJS_TEMP = Coul_cut_2D.o \
 a2fmod.o \

@@ -1,7 +1,9 @@
 QESRC_DIR = Modules
 PNAME = qepy_modules
 QEPY_LIBS = -L$(PYBUILDDIR) -lqepy_upflib -lqepy_xclib -lqepy_fftxlib -lqepy_laxlib -lqepy_utilxlib -lqepy_mbd
-QEPY_INCS = -I. -I$(QEDIR)/$(QESRC_DIR) -I$(PYBUILDDIR)/upflib -I$(QEDIR)/upflib -I$(PYBUILDDIR)/xclib -I$(QEDIR)/XClib -I$(PYBUILDDIR)/fftxlib -I$(QEDIR)/FFTXlib/src -I$(PYBUILDDIR)/laxlib -I$(QEDIR)/LAXlib -I$(PYBUILDDIR)/utilxlib -I$(QEDIR)/UtilXlib -I$(PYBUILDDIR)/mbd -I$(QEDIR)/external/mbd/src
+QEPY_INCS = -I. -I$(QEDIR)/$(QESRC_DIR) -I$(PYBUILDDIR)/upflib -I$(QEDIR)/upflib -I$(PYBUILDDIR)/xclib -I$(QEDIR)/XClib -I$(PYBUILDDIR)/fftxlib -I$(QEDIR)/FFTXlib/src -I$(PYBUILDDIR)/laxlib -I$(QEDIR)/LAXlib -I$(PYBUILDDIR)/utilxlib -I$(QEDIR)/UtilXlib -I$(PYBUILDDIR)/mbd -I$(QEDIR)/MBD
+
+SKIPTYPES = 
 
 QEPY_OBJS = qepy_sys.o
 
@@ -31,7 +33,8 @@ wavefunctions.o \
 space_group.o \
 wyckoff.o \
 wypos.o \
-latgen.o
+latgen.o \
+plugin_flags.o
 
 LIB_OBJS_TEMP = additional_kpoints.o \
 allocate_fft_3drism.o \

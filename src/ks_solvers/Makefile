@@ -3,6 +3,8 @@ PNAME = qepy_ks_solvers
 QEPY_LIBS = -L$(PYBUILDDIR) -lqepy_utilxlib -lqepy_laxlib -lqepy_modules -lqepy_pw
 QEPY_INCS = -I. -I$(QEDIR)/$(QESRC_DIR) -I$(PYBUILDDIR)/utilxlib -I$(QEDIR)/UtilXlib -I$(PYBUILDDIR)/laxlib -I$(QEDIR)/LAXlib -I$(PYBUILDDIR)/modules -I$(QEDIR)/Modules -I$(PYBUILDDIR)/pw -I$(QEDIR)/PW/src
 
+SKIPTYPES = 
+
 QEPY_OBJS = 
 
 QEPY_PROG_OBJS = 

@@ -3,6 +3,8 @@ PNAME = qepy_kcw_pp
 QEPY_LIBS = -L$(PYBUILDDIR) -lqepy_kcw $(MODS_LR)
 QEPY_INCS = -I. -I$(QEDIR)/$(QESRC_DIR) -I$(PYBUILDDIR)/kcw -I$(QEDIR)/KCW/src $(INCS_MODS_LR) $(INCS_MODS_LR_QE)
 
+SKIPTYPES = 
+
 QEPY_OBJS = 
 
 QEPY_PROG_OBJS = compute_self_hartree.o \

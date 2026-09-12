@@ -3,6 +3,8 @@ PNAME = qepy_gww_head
 QEPY_LIBS = -L$(PYBUILDDIR) -lqepy_gww_minpack -lqepy_phonon_ph $(MODS_LR)
 QEPY_INCS = -I. -I$(QEDIR)/$(QESRC_DIR) -I$(PYBUILDDIR)/gww_minpack -I$(QEDIR)/GWW/minpack -I$(PYBUILDDIR)/phonon_ph -I$(QEDIR)/PHonon/PH $(INCS_MODS_LR) $(INCS_MODS_LR_QE)
 
+SKIPTYPES = 
+
 QEPY_OBJS = 
 
 QEPY_PROG_OBJS = head.o

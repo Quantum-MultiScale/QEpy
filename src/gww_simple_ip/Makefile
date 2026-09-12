@@ -3,6 +3,8 @@ PNAME = qepy_gww_simple_ip
 QEPY_LIBS = -L$(PYBUILDDIR) -lqepy_gww_pw4gww $(MODS_PW)
 QEPY_INCS = -I. -I$(QEDIR)/$(QESRC_DIR) -I$(PYBUILDDIR)/gww_pw4gww -I$(QEDIR)/GWW/pw4gww $(INCS_MODS_PW) $(INCS_MODS_PW_QE)
 
+SKIPTYPES = 
+
 QEPY_OBJS = 
 
 QEPY_PROG_OBJS = simple_ip.o

@@ -3,7 +3,9 @@ PNAME = qepy_tddfpt
 QEPY_LIBS = -L$(PYBUILDDIR) $(MODS_LR)
 QEPY_INCS = -I. -I$(QEDIR)/$(QESRC_DIR) $(INCS_MODS_LR) $(INCS_MODS_LR_QE)
 
-QEPY_OBJS = 
+SKIPTYPES = 
+
+QEPY_OBJS = qepy_lr_dav_main.o
 
 QEPY_PROG_OBJS = lr_dav_main.o \
 lr_eels_main.o \
@@ -11,7 +13,9 @@ lr_magnons_main.o \
 lr_main.o \
 turbo_spectrum.o
 
-QE_OBJS = 
+QEPY_FIX_OBJS = qepyfix_lr_dav_routines.o
+
+QE_OBJS = lr_dav_variables.o
 
 LIB_OBJS_TEMP = bcast_lr_input.o \
 dveqpsi_us.o \

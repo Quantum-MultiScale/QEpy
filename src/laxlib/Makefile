@@ -3,6 +3,8 @@ PNAME = qepy_laxlib
 QEPY_LIBS = -L$(PYBUILDDIR) -lqepy_utilxlib
 QEPY_INCS = -I. -I$(QEDIR)/$(QESRC_DIR) -I$(PYBUILDDIR)/utilxlib -I$(QEDIR)/UtilXlib
 
+SKIPTYPES = 
+
 QEPY_OBJS = 
 
 QEPY_PROG_OBJS = 
