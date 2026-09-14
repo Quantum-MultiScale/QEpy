@@ -25,7 +25,7 @@ def test_scf_iter():
     assert np.isclose(energy, -552.93477389, atol = 1E-6)
     assert np.isclose(forces[0, 0], -0.00835135, atol = 1E-3)
     assert np.isclose(stress[1, 1], -0.00256059, atol = 1E-3)
-    driver.stop()
+    driver.stop(finalize=True)
 
 
 if __name__ == "__main__":
