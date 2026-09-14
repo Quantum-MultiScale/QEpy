@@ -1,5 +1,5 @@
 !
-! Copyright (C) 2001-2020 Quantum ESPRESSO group
+! Copyright (C) 2001-2023 Quantum ESPRESSO group
 ! This file is distributed under the terms of the
 ! GNU General Public License. See the file `License'
 ! in the root directory of the present distribution,
@@ -27,20 +27,21 @@ SUBROUTINE potinit()
   USE io_global,            ONLY : stdout
   USE cell_base,            ONLY : alat, omega
   USE ions_base,            ONLY : nat, ityp, ntyp => nsp
-  USE basis,                ONLY : starting_pot
+  USE starting_scf,         ONLY : starting_pot
   USE klist,                ONLY : nelec
   USE lsda_mod,             ONLY : lsda, nspin
   USE fft_base,             ONLY : dfftp
   USE gvect,                ONLY : ngm, gstart, g, gg, ig_l2g
   USE gvecs,                ONLY : doublegrid
   USE control_flags,        ONLY : lscf, gamma_only, restart, sic
-  USE scf,                  ONLY : rho, rho_core, rhog_core, &
+  USE scf,                  ONLY : rho, rho_core, rhog_core, tau_core, &
                                    vltot, v, vrs, kedtau
   USE xc_lib,               ONLY : xclib_dft_is
   USE ener,                 ONLY : ehart, etxc, vtxc, epaw, esol, vsol
-  USE ldaU,                 ONLY : lda_plus_u, Hubbard_lmax, eth, &
+  USE ldaU,                 ONLY : lda_plus_u, eth, &
                                    niter_with_fixed_ns, lda_plus_u_kind, &
-                                   nsg, nsgnew
+                                   apply_U, hub_pot_fix, &
+                                   orbital_resolved
   USE noncollin_module,     ONLY : noncolin, domag, report, lforcet
   USE io_files,             ONLY : restart_dir, input_drho, check_file_exist
   USE mp,                   ONLY : mp_sum
@@ -51,17 +52,17 @@ SUBROUTINE potinit()
   USE fft_rho,              ONLY : rho_g2r, rho_r2g
   !
   USE uspp,                 ONLY : becsum
-  USE paw_variables,        ONLY : okpaw, ddd_PAW
+  USE paw_variables,        ONLY : okpaw, ddd_paw
   USE paw_init,             ONLY : PAW_atomic_becsum
   USE paw_onecenter,        ONLY : PAW_potential
   !
-  !qepy fix --> import module
+!qepy -->
   USE klist,                ONLY : nelup, neldw
-  !qepy fix --> import module
-  USE scf_gpum,             ONLY : using_vrs
+!qepy <--
   USE pwcom,                ONLY : report_mag 
   USE rism_module,          ONLY : lrism, rism_init3d, rism_calc3d
   !
+  USE extfield,             ONLY : dipfield, emaxpos, eopreg, edir
 #if defined (__ENVIRON)
   USE plugin_flags,         ONLY : use_environ
   USE environ_pw_module,    ONLY : calc_environ_potential
@@ -91,15 +92,21 @@ SUBROUTINE potinit()
      ! ... Cases a) and b): the charge density is read from file
      ! ... this also reads rho%ns if DFT+U, rho%bec if PAW, rho%kin if metaGGA
      !
+     ! ... if we restart from a preexisting charge density, the eigenstates
+     ! ... are considered stable and we can apply orbital-resolved Hubbard 
+     ! ... corrections starting from the first iteration
+     IF ( orbital_resolved ) apply_U = .TRUE.
+     !
      IF ( .NOT.lforcet ) THEN
         CALL read_scf ( rho, nspin, gamma_only )
      ELSE
+        IF ( okpaw )  CALL errore( 'potinit', &
+                                   'force theorem with PAW not implemented', 1 )
         !
         ! ... 'force theorem' calculation of MAE: read rho only from previous
         ! ... lsda calculation, set noncolinear magnetization from angles
         ! ... (not if restarting! the charge density saved to file in that
         ! ...  case has already the required magnetization direction)
-        ! ... FIXME: why not calling read_scf also in this case?
         !
         CALL read_rhog ( filename, root_bgrp, intra_bgrp_comm, &
              ig_l2g, nspin, rho%of_g, gamma_only )
@@ -156,19 +163,22 @@ SUBROUTINE potinit()
      IF (lda_plus_u) THEN
         !
         IF (lda_plus_u_kind == 0) THEN
-           CALL init_ns()
-        ELSEIF (lda_plus_u_kind == 1) THEN
-           IF (noncolin) THEN
-              CALL init_ns_nc()
-           ELSE
-              CALL init_ns()
+           IF ( hub_pot_fix ) &
+              CALL errore( 'potinit', &
+                     'cannot apply Hubbard alpha without &
+                     &restarting from a converged potential', 1 )
+           IF ( orbital_resolved .AND. (.NOT. apply_U) ) THEN
+              WRITE( stdout, '(/,5X,47("="))')
+              WRITE( stdout, '(/,5X,"Not restarting from a converged ", &
+                                &    "potential:",/,5X,             &
+              & "Orbital-resolved Hubbard corrections not yet active")')
+              WRITE( stdout, '(/,5X,47("="))')
+              !
            ENDIF
-        ELSEIF (lda_plus_u_kind == 2) THEN
-           CALL init_nsg()
         ENDIF
+        CALL init_ns_hubbard ( noncolin ) 
         !
      ENDIF
-
      ! ... in the paw case uses atomic becsum
      IF ( okpaw )      CALL PAW_atomic_becsum()
      !
@@ -213,11 +223,11 @@ SUBROUTINE potinit()
      CALL errore( 'potinit', 'starting and expected charges differ', 1 )
      !
   END IF
-  !qepy fix --> scale charge for spin
+!qepy -->
   IF ( nspin == 2 ) THEN
      rho%of_g(1,2) = (nelup-neldw) / omega
   ENDIF
-  !qepy fix <-- scale charge for spin
+!qepy <--
   !
   ! ... bring starting rho from G- to R-space
   !
@@ -232,17 +242,21 @@ SUBROUTINE potinit()
   END IF   
   !
   IF  ( xclib_dft_is('meta') ) THEN
+     !
      IF (starting_pot /= 'file') THEN
         ! ... define a starting (TF) guess for rho%kin_r from rho%of_r
-        ! ... to be verified for LSDA: rho is (tot,magn), rho_kin is (up,down)
         fact = (3.d0/5.d0)*(3.d0*pi*pi)**(2.0/3.0)
-        DO is = 1, nspin
-           rho%kin_r(:,is) = fact * abs(rho%of_r(:,is)*nspin)**(5.0/3.0)/nspin
-        END DO
-        !if (nspin==2) then
-        !     rho%kin_r(:,1) = fact * abs(rho%of_r(:,1)+rho%of_r(:,2))**(5.0/3.0)/2.0
-        !     rho%kin_r(:,2) = fact * abs(rho%of_r(:,1)-rho%of_r(:,2))**(5.0/3.0)/2.0
-        !endif
+        IF ( nspin == 1) THEN
+           rho%kin_r(:,1) = fact * abs(rho%of_r(:,1))**(5.0/3.0)
+        ELSE ! IF ( nspin == 2) THEN 
+           ! ... NB: for LSDA rho is (tot,magn), rho_kin is (up,down) 
+           rho%kin_r(:,1) = ( rho%of_r(:,1) + rho%of_r(:,2) ) / 2.0_dp
+           rho%kin_r(:,2) = ( rho%of_r(:,1) - rho%of_r(:,2) ) / 2.0_dp
+           ! multiplication by nspin: see Eq.2.9 of 10.1103/PhysRevA.20.397
+           DO is = 1, nspin
+              rho%kin_r(:,is) = fact * abs(rho%kin_r(:,is)*nspin)**(5.0/3.0)/nspin
+           END DO
+        END IF
         ! ... bring it to g-space
         CALL rho_r2g (dfftp, rho%kin_r, rho%kin_g)
      ELSE
@@ -251,6 +265,11 @@ SUBROUTINE potinit()
      ENDIF
      !
   END IF
+  ! ... if a dipolar field is present, store it into rho for later usage
+  ! ... in self-consistency mixing
+  !
+  IF (dipfield) &
+      CALL compute_el_dip(emaxpos, eopreg, edir, rho%of_r(:,1), rho%el_dipole)
   !
   ! ... initialize 3D-RISM
   !
@@ -267,9 +286,9 @@ SUBROUTINE potinit()
   !
   ! ... compute the potential and store it in v
   !
-  CALL v_of_rho( rho, rho_core, rhog_core, &
+  CALL v_of_rho( rho, rho_core, rhog_core, tau_core, &
                  ehart, etxc, vtxc, eth, etotefield, charge, v )
-  IF (okpaw) CALL PAW_potential(rho%bec, ddd_PAW, epaw)
+  IF (okpaw) CALL PAW_potential(rho%bec, ddd_paw, epaw)
   !
   ! ... calculate 3D-RISM to get the solvation potential
   !
@@ -277,9 +296,7 @@ SUBROUTINE potinit()
   !
   ! ... define the total local potential (external+scf)
   !
-  CALL using_vrs(1)
   CALL set_vrs( vrs, vltot, v%of_r, kedtau, v%kin_r, dfftp%nnr, nspin, doublegrid )
-  !
   ! ... write on output the parameters used in the DFT+U(+V) calculation
   !
   IF ( lda_plus_u ) THEN
@@ -291,18 +308,7 @@ SUBROUTINE potinit()
      ! ... info about starting occupations
      WRITE( stdout, '(/5X,"STARTING HUBBARD OCCUPATIONS:")')
      !
-     IF (lda_plus_u_kind == 0) THEN
-        CALL write_ns()
-     ELSEIF (lda_plus_u_kind == 1) THEN
-        IF (noncolin) THEN
-           CALL write_ns_nc()
-        ELSE
-           CALL write_ns()
-        ENDIF
-     ELSEIF (lda_plus_u_kind == 2) THEN
-        nsgnew = nsg
-        CALL write_nsg()
-     ENDIF
+     CALL write_ns_hubbard( noncolin )
      !
   END IF
   !
@@ -327,6 +333,8 @@ SUBROUTINE nc_magnetization_from_lsda ( ngm, nspin, rho )
   IMPLICIT NONE
   INTEGER, INTENT (in):: ngm, nspin
   COMPLEX(dp), INTENT (inout):: rho(ngm,nspin)
+  !
+  IF ( nspin < 4 ) RETURN
   !---  
   !  set up noncollinear m_x,y,z from collinear m_z (AlexS) 
   !
@@ -340,12 +348,11 @@ SUBROUTINE nc_magnetization_from_lsda ( ngm, nspin, rho )
   !         rho(3)=magn*sin(theta)*sin(phi)   y
   !         rho(4)=magn*cos(theta)            z
   !
-  rho(:,2) = rho(:,4)*sin(angle1(1))
+  rho(:,4) = rho(:,2)*cos(angle1(1))
+  rho(:,2) = rho(:,2)*sin(angle1(1))
   rho(:,3) = rho(:,2)*sin(angle2(1))
-  rho(:,4) = rho(:,4)*cos(angle1(1))
   rho(:,2) = rho(:,2)*cos(angle2(1))
   !
   RETURN
   !
 END SUBROUTINE nc_magnetization_from_lsda
-

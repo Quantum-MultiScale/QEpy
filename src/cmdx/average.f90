@@ -111,7 +111,7 @@ SUBROUTINE average()
   REAL(DP) :: leng
   REAL(DP), ALLOCATABLE :: taus (:,:)
   INTEGER, ALLOCATABLE :: ityps (:)
-  CHARACTER (len=3) :: atms(ntypx)
+  CHARACTER (len=6) :: atms(ntypx)
 
   INTEGER :: nfft, nfftx, idir
 
@@ -373,7 +373,7 @@ SUBROUTINE average()
      !
   ENDIF
   !
-  CALL environment_end ( 'AVERAGE' )
+  CALL environment_end( )
   !
   CALL stop_pp
   !

@@ -10,7 +10,7 @@ except Exception:
 
 fname = 'qe_in.in'
 
-driver = Driver(fname, comm)
+driver = Driver(fname, comm, iterative=True)
 
 for i in range(60):
     driver.diagonalize()

@@ -11,7 +11,9 @@
 !----------------------------------------------------------------------------
 !
 !----------------------------------------------------------------------
+!qepy -->
 SUBROUTINE qepy_setlocal()
+!qepy <--
   !----------------------------------------------------------------------
   !! This routine computes the local potential in real space vltot(ir).
   !
@@ -42,9 +44,9 @@ SUBROUTINE qepy_setlocal()
   USE environ_pw_module, ONLY : update_environ_potential
 #endif
   !
-  !
+!qepy -->
   USE qepy_common,       ONLY : embed
-  !
+!qepy <--
   IMPLICIT NONE
   !
   COMPLEX(DP), ALLOCATABLE :: aux(:), v_corr(:)
@@ -54,11 +56,13 @@ SUBROUTINE qepy_setlocal()
   INTEGER :: nt, ng
   ! counter on atom types
   ! counter on g vectors
+  !
+!qepy -->
   logical              :: have = .true.
   !
   if (iand(embed%exttype,1) == 1) have = .false.
-  !
   if (have) then
+!qepy <--
   ALLOCATE( aux(ngm) )
   aux(:) = (0.d0,0.d0)
   ALLOCATE (vlesm(ngm))
@@ -101,9 +105,11 @@ SUBROUTINE qepy_setlocal()
   CALL mp_sum( v_of_0, intra_bgrp_comm )
   !
   CALL rho_g2r( dfftp, aux, vltot )
+!qepy -->
   else
   vltot(:) =  0.0_DP
   endif
+!qepy <--
   !
   ! ... If required add an electric field to the local potential 
   !
@@ -149,13 +155,19 @@ SUBROUTINE qepy_setlocal()
   IF (use_environ) CALL update_environ_potential(vltot)
 #endif
   !
+!qepy -->
   if (have) then
+!qepy <--
   DEALLOCATE( aux )
   DEALLOCATE( vlesm )
+!qepy -->
   endif
+!qepy <--
   !
   !
   RETURN
   !
+!qepy -->
 END SUBROUTINE qepy_setlocal
+!qepy <--
 

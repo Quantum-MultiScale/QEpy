@@ -157,7 +157,7 @@ SUBROUTINE pw2critic()
 
   ! clean up and exit
   CLOSE(lu1)
-  CALL environment_end('PW2CRITIC')
+  CALL environment_end( )
   CALL stop_pp()
 
 CONTAINS

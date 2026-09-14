@@ -6,7 +6,9 @@
 ! or http://www.gnu.org/copyleft/gpl.txt .
 !
 !----------------------------------------------------------------------------
+!qepy -->
 SUBROUTINE qepy_pwscf(infile, my_world_comm, embed)
+!qepy <--
   !! Author: Paolo Giannozzi
   !
   !! Version: v6.1
@@ -41,9 +43,11 @@ SUBROUTINE qepy_pwscf(infile, my_world_comm, embed)
   USE mp_global,            ONLY : mp_startup
   USE read_input,           ONLY : read_input_file
   USE command_line_options, ONLY : input_file_, command_line, nimage_
+  USE upf_utils,            ONLY : matches
   !
+!qepy -->
   USE qepy_common,          ONLY : embed_base, set_embed, messenger, p_embed => embed
-  !
+!qepy <--
   IMPLICIT NONE
   !
   CHARACTER(len=256) :: srvaddress
@@ -54,9 +58,8 @@ SUBROUTINE qepy_pwscf(infile, my_world_comm, embed)
   !! Status at exit
   LOGICAL :: use_images
   !! true if running "manypw.x"
-  LOGICAL, EXTERNAL :: matches
-  !! checks if first string is contained in the second
   !
+!qepy -->
   CHARACTER(len=*) :: infile
   INTEGER, INTENT(IN), OPTIONAL :: my_world_comm
   type(embed_base), intent(inout), optional :: embed
@@ -67,11 +70,15 @@ SUBROUTINE qepy_pwscf(infile, my_world_comm, embed)
   IF ( PRESENT(my_world_comm)) THEN
   CALL mp_startup(my_world_comm=my_world_comm, start_images=.TRUE., images_only=.TRUE. )
   ELSE
+!qepy <--
   CALL mp_startup( start_images=.TRUE., images_only=.TRUE. )
+!qepy -->
   ENDIF
+!qepy <--
   !
   !
   CALL environment_start( 'PWSCF' )
+!qepy -->
   input_file_=trim(infile)
   CALL read_input_file( 'PW', input_file_ )
   CALL qepy_run_pwscf(exit_status)
@@ -87,7 +94,6 @@ SUBROUTINE qepy_pwscf_finalise()
 END SUBROUTINE qepy_pwscf_finalise
 
 SUBROUTINE qepy_initial(input, embed)
-  !
   USE io_global,   ONLY : ionode
   USE mp_global,   ONLY : mp_startup
   USE environment, ONLY : environment_start, environment_end
@@ -95,23 +101,17 @@ SUBROUTINE qepy_initial(input, embed)
   USE io_files,    ONLY : tmp_dir, prefix
   USE check_stop,  ONLY : check_stop_init
   USE qepy_common, ONLY : embed_base, set_embed, messenger, p_embed => embed
-  !
   IMPLICIT NONE
-  !
   TYPE(input_base), OPTIONAL :: input
   type(embed_base), intent(inout), optional :: embed
-  !
   LOGICAL            :: start_images = .false.
   LOGICAL            :: images_only = .false.
-  !
   if (present(embed)) call set_embed(embed)
   if (.not. associated(p_embed)) call set_embed(messenger)
-  !
   IF (PRESENT(input)) THEN
      start_images = input%start_images
      images_only = input%start_images
   ENDIF
-  !
   IF ( PRESENT(input)) THEN
      IF (input%my_world_comm /= 0 ) THEN
         CALL mp_startup(my_world_comm=input%my_world_comm, start_images=start_images, images_only=images_only )
@@ -121,13 +121,11 @@ SUBROUTINE qepy_initial(input, embed)
   ELSE
      CALL mp_startup(start_images=start_images )
   ENDIF
-  !
   IF (PRESENT(input)) THEN
      prefix = input%prefix
      tmp_dir = input%tmp_dir
      CALL environment_start ( input%code )
   ENDIF
-  !
   CALL check_stop_init()
 END SUBROUTINE qepy_initial
 
@@ -146,3 +144,4 @@ SUBROUTINE qepy_finalise_end(input)
   ENDIF
   CALL mp_global_end()
 END SUBROUTINE qepy_finalise_end
+!qepy <--

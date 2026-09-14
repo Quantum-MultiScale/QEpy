@@ -1,7 +1,9 @@
-PLUGIN_DIR = $(BUILDDIR)/ce-tddft/src
+PLUGIN_DIR = $(PYBUILDDIR)/ce-tddft/src
 PNAME = qepy_cetddft
-QEPY_LIBS = -L$(BUILDDIR) $(MODS_LR)
+QEPY_LIBS = -L$(PYBUILDDIR) $(MODS_LR)
 QEPY_INCS = -I. -I$(QEDIR)/$(QESRC_DIR) $(INCS_MODS_LR) $(INCS_MODS_LR_QE)
+
+SKIPTYPES = 
 
 QEPY_OBJS = qepy_molecule_optical_absorption.o \
 qepy_tddft_common.o \

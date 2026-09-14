@@ -1,0 +1,15 @@
+qepy_electrons.f90 : ~/q-e-qe-7.2/PW/src/electrons.f90
+qepy_forces.f90 : ~/q-e-qe-7.2/PW/src/forces.f90
+qepy_hinit1.f90 : ~/q-e-qe-7.2/PW/src/hinit1.f90
+qepy_pw2casino_write.f90 : ~/q-e-qe-7.2/PW/src/pw2casino_write.f90
+qepy_pwscf.f90 : ~/q-e-qe-7.2/PW/src/pwscf.f90
+qepy_run_pwscf.f90 : ~/q-e-qe-7.2/PW/src/run_pwscf.f90
+qepy_setlocal.f90 : ~/q-e-qe-7.2/PW/src/setlocal.f90
+qepy_stop_run.f90 : ~/q-e-qe-7.2/PW/src/stop_run.f90
+qepy_stress.f90 : ~/q-e-qe-7.2/PW/src/stress.f90
+qepy_v_of_rho.f90 : ~/q-e-qe-7.2/PW/src/v_of_rho.f90
+qepyfix_potinit.f90 : ~/q-e-qe-7.2/PW/src/potinit.f90
+qepyfix_pw_restart_new.f90 : ~/q-e-qe-7.2/PW/src/pw_restart_new.f90
+qepyfix_read_file_new.f90 : ~/q-e-qe-7.2/PW/src/read_file_new.f90
+qepyfix_setup.f90 : ~/q-e-qe-7.2/PW/src/setup.f90
+qepyfix_wfcinit.f90 : ~/q-e-qe-7.2/PW/src/wfcinit.f90

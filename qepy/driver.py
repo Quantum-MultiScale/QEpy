@@ -383,8 +383,8 @@ class Driver(metaclass=QEpyLibs):
         if self.task == 'optical' :
             self.qepy_cetddft.qepy_molecule_optical_absorption()
         elif self.task == 'tddfpt_davidson' :
-            if self.qepy_tddfpt.lr_dav_variables.get_if_check_orth():
-                self.qepy_tddfpt.lr_dav_debug.check_orth()
+            # if self.qepy_tddfpt.lr_dav_variables.get_if_check_orth(): # QE-7.6 removed
+            #     self.qepy_tddfpt.lr_dav_debug.check_orth()
             self.qepy_tddfpt.lr_dav_routines.one_dav_step()
             self.qepy_tddfpt.lr_dav_routines.dav_calc_residue()
             self.qepy_tddfpt.lr_dav_routines.dav_expan_basis()
@@ -490,7 +490,7 @@ class Driver(metaclass=QEpyLibs):
         self.qepy_modules.control_flags.set_lscf(0)
         self.qepy_modules.control_flags.set_lbfgs(0)
         self.qepy_modules.control_flags.set_lmd(0)
-        self.qepy_modules.control_flags.set_lwf(0)
+        # self.qepy_modules.control_flags.set_lwf(0) # was remove after qe-7.6
         #
         self.qepy_pw.non_scf()
         return self.qepy_pw.ener.get_etot()
@@ -513,7 +513,7 @@ class Driver(metaclass=QEpyLibs):
                 self.embed.finish = True
                 self.qepy_pw.qepy_electrons_scf(0, 0)
 
-    def stop(self, exit_status = 0, what = 'all', print_flag = 0, **kwargs):
+    def stop(self, exit_status = 0, what = 'all', print_flag = 0, finalize=False, **kwargs):
         """Stop the driver. This must be done anytime a new driver is created.
         This method is invoked automatically if a running driver is detected. Only
         one driver can run at any given time.
@@ -535,7 +535,7 @@ class Driver(metaclass=QEpyLibs):
             self.phonon_stop(**kwargs)
         else :
             if not self.embed.initial : self.end_scf()
-            self.qepy_pw.qepy_stop_run(exit_status, print_flag = print_flag, what = what, finalize = False)
+            self.qepy_pw.qepy_stop_run(exit_status, print_flag = print_flag, what = what, finalize = finalize)
 
         if hasattr(self.fileobj, 'close'): self.fileobj.close()
         qepy_clean_saved()
@@ -875,11 +875,11 @@ class Driver(metaclass=QEpyLibs):
         ----------
         """
         self.qepy_pw.qepy_mod.qepy_restart_from_xml()
-        if self.qepy_pw.basis.get_starting_pot().strip() != starting_pot :
-            self.qepy_pw.basis.set_starting_pot(starting_pot)
+        if self.qepy_pw.starting_scf.get_starting_pot().strip() != starting_pot :
+            self.qepy_pw.starting_scf.set_starting_pot(starting_pot)
             self.qepy_pw.potinit()
-        if self.qepy_pw.basis.get_starting_wfc().strip() != starting_wfc :
-            self.qepy_pw.basis.set_starting_wfc(starting_wfc)
+        if self.qepy_pw.starting_scf.get_starting_wfc().strip() != starting_wfc :
+            self.qepy_pw.starting_scf.set_starting_wfc(starting_wfc)
             self.qepy_pw.wfcinit()
 
     def create_array(self, gather = True, kind = 'rho', out = None):
@@ -1021,9 +1021,18 @@ class Driver(metaclass=QEpyLibs):
             return None
 
     @gathered
-    def get_elf(self, gather = True, out = None, **kwargs):
+    def get_elf(self, gather = True, out = None, iself=True, spin=None, **kwargs):
         """Return electron localization function."""
-        self.qepy_pp.do_elf(out)
+        # !  Calculation of the electron localization function (iself = true)
+        # !  or the kinetic energy density (iself = false). In the case of the
+        # !  KED calculation, spin = None gives the total KED, and
+        # !  spin = 0 or 1 gives the contribution from the
+        # !  corresponding spin channel.
+        if spin is None:
+            spin = 0
+        else:
+            spin = spin + 1
+        self.qepy_pp.do_elf_kin(out, iself, spin)
         return out
 
     @gathered
@@ -1065,10 +1074,11 @@ class Driver(metaclass=QEpyLibs):
         rho_obj = self.embed.rho
         rho_core = self.qepy_pw.scf.get_array_rho_core()
         rhog_core = self.qepy_pw.scf.get_array_rhog_core()
+        tau_core = self.qepy_pw.scf.get_array_tau_core()
         is_meta = self.qepy_xclib.dft_setting_routines.xclib_dft_is('meta')
         if is_meta:
             if tau is None : tau = out*0.0
-            self.qepy_pw.v_xc_meta(rho_obj, rho_core, rhog_core, etxc, vtxc, out, tau)
+            self.qepy_pw.v_xc_meta(rho_obj, rho_core, rhog_core, tau_core, etxc, vtxc, out, tau)
             return out, etxc, vtxc, tau
         else :
             etxc, vtxc = self.qepy_pw.v_xc(rho_obj, rho_core, rhog_core, out)

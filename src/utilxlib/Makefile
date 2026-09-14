@@ -1,7 +1,9 @@
 QESRC_DIR = UtilXlib
 PNAME = qepy_utilxlib
-QEPY_LIBS = -L$(BUILDDIR) 
+QEPY_LIBS = -L$(PYBUILDDIR) 
 QEPY_INCS = -I. -I$(QEDIR)/$(QESRC_DIR) 
+
+SKIPTYPES = 
 
 QEPY_OBJS = 
 

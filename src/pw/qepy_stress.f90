@@ -7,20 +7,23 @@
 !
 !
 !----------------------------------------------------------------------
+!qepy -->
 SUBROUTINE qepy_stress( sigma, icalc )
+!qepy <--
   !----------------------------------------------------------------------
   !! Computes the total stress.
   !
   USE io_global,        ONLY : stdout
   USE kinds,            ONLY : DP
-  USE cell_base,        ONLY : omega, alat, at, bg
+  USE cell_base,        ONLY : omega, alat, at, bg, pbc
   USE ions_base,        ONLY : nat, ntyp => nsp, ityp, tau, zv, atm
   USE constants,        ONLY : ry_kbar
   USE ener,             ONLY : etxc, vtxc
-  USE gvect,            ONLY : ngm, gstart, g, gg, gcutm, gl, gl_d
+  USE gvect,            ONLY : ngm, gstart, g, gg, gcutm, gl
   USE fft_base,         ONLY : dfftp
   USE ldaU,             ONLY : lda_plus_u, Hubbard_projectors
   USE lsda_mod,         ONLY : nspin
+  USE noncollin_module, ONLY : domag
   USE scf,              ONLY : rho, rho_core, rhog_core
   USE control_flags,    ONLY : iverbosity, gamma_only, llondon, ldftd3, lxdm, &
                                ts_vdw, mbd_vdw
@@ -38,9 +41,9 @@ SUBROUTINE qepy_stress( sigma, icalc )
   USE rism_module,      ONLY : lrism, stres_rism
   USE esm,              ONLY : do_comp_esm, esm_bc ! for ESM stress
   USE esm,              ONLY : esm_stres_har, esm_stres_ewa, esm_stres_loclong 
-  !qepy --> use
+!qepy -->
   USE qepy_common,      ONLY : embed
-  !qepy <-- use
+!qepy <--
   !
   IMPLICIT NONE
   !
@@ -61,10 +64,9 @@ SUBROUTINE qepy_stress( sigma, icalc )
   ! ... Auxiliary variables for Grimme-D3
   !
   INTEGER  :: atnum(1:nat)
-  REAL(DP) :: latvecs(3,3)
+  REAL(DP), ALLOCATABLE :: taupbc(:,:)
   REAL(DP), ALLOCATABLE :: force_d3(:,:)
-  !
-  !qepy --> init
+!qepy -->
   integer,intent(in),optional             :: icalc
   integer                                 :: calctype
   !
@@ -73,7 +75,7 @@ SUBROUTINE qepy_stress( sigma, icalc )
   else
      calctype = 0
   end if
-  !qepy <-- init
+!qepy <--
   !
   WRITE( stdout, '(//5x,"Computing stress (Cartesian axis) and pressure"/)' )
   !
@@ -85,9 +87,7 @@ SUBROUTINE qepy_stress( sigma, icalc )
   CALL start_clock( 'stress' )
   !
   !$acc update device( g, gg )
-#if defined(__CUDA)
-  gl_d = gl
-#endif
+  !FIXME: I don't think the above line is needed
   !
   ! ... contribution from local potential
   !
@@ -116,13 +116,8 @@ SUBROUTINE qepy_stress( sigma, icalc )
   !
   ! ... XC contribution: add gradient corrections (non diagonal)
   !
-  IF (.NOT.xclib_dft_is('meta')) THEN
-    CALL stres_gradcorr( rho%of_r, rho%of_g, rho_core, rhog_core, &
-                         nspin, dfftp, g, alat, omega, sigmaxc )
-  ELSE
-    CALL stres_gradcorr( rho%of_r, rho%of_g, rho_core, rhog_core, &
-                         nspin, dfftp, g, alat, omega, sigmaxc, rho%kin_r )
-  ENDIF
+  CALL stres_gradcorr( rho, rho_core, rhog_core, nspin, domag, &
+                       dfftp, g, alat, omega, sigmaxc )
   !
   ! ... meta-GGA contribution
   !
@@ -151,13 +146,16 @@ SUBROUTINE qepy_stress( sigma, icalc )
     CALL start_clock('stres_dftd3')
     ALLOCATE( force_d3(3,nat) )
     force_d3( : , : ) = 0.0_DP
-    latvecs(:,:) = at(:,:)*alat
-    tau(:,:) = tau(:,:)*alat
-    atnum(:) = get_atomic_number(atm(ityp(:)))
-    CALL dftd3_pbc_gdisp( dftd3, tau, atnum, latvecs, &
+    ! taupbc are atomic positions in alat units, centered around r=0
+    ALLOCATE ( taupbc(3,nat) )
+    DO l = 1, nat
+       taupbc(:,l) = pbc( tau(:,l)*alat )
+       atnum(l) = get_atomic_number(atm(ityp(l)))
+    END DO
+    CALL dftd3_pbc_gdisp( dftd3, taupbc, atnum, alat*at, &
                          force_d3, sigmad23 )
     sigmad23 = 2.d0*sigmad23
-    tau(:,:)=tau(:,:)/alat
+    DEALLOCATE( taupbc )
     DEALLOCATE( force_d3 )
     CALL stop_clock('stres_dftd3')
   END IF
@@ -182,9 +180,13 @@ SUBROUTINE qepy_stress( sigma, icalc )
   !
   sigmael(:,:)=0.d0
   sigmaion(:,:)=0.d0
-  !the following is for calculating the improper stress tensor
-!  call stress_bp_efield (sigmael )
-!  call stress_ion_efield (sigmaion )
+  !
+  ! ... The following calls compute macroscopic electric-field 
+  ! ... contributions, disabled for reasons explained here at the end:
+  ! ... https://gitlab.com/QEF/q-e/-/work_items/856
+  !
+  !  call stress_bp_efield (sigmael )
+  !  call stress_ion_efield (sigmaion )
   !
   ! ... vdW dispersion contribution: xdm
   !
@@ -215,13 +217,13 @@ SUBROUTINE qepy_stress( sigma, icalc )
   !
   ! ... Sum all terms
   !
-  !qepy --> remove some stress
+!qepy -->
   if (iand(calctype,1) /= 0) sigmaewa = 0.0 ! ewald
   if (iand(calctype,2) /= 0) sigmaloc = 0.0 ! local
   if (iand(calctype,4) /= 0) sigmahar = 0.0 ! hartree
   if (iand(calctype,8) /= 0) sigmaxc  = 0.0 ! exc-cor
   if (iand(calctype,8) /= 0) sigmaxcc = 0.0 ! corecor
-  !qepy <-- remove some stress
+!qepy <--
   sigma(:,:) = sigmakin(:,:) + sigmaloc(:,:) + sigmahar(:,:) +  &
                sigmaxc(:,:)  + sigmaxcc(:,:) + sigmaewa(:,:) +  &
                sigmanlc(:,:) + sigmah(:,:)   + sigmael(:,:)  +  &
@@ -229,9 +231,9 @@ SUBROUTINE qepy_stress( sigma, icalc )
                sigma_nonloc_dft(:,:) + sigma_ts(:,:) + sigma_mbd(:,:) + &
                sigmasol(:,:)
   !
-  !qepy --> add extstress
+!qepy -->
   sigma(:,:) = sigma(:,:) + embed%extstress
-  !qepy <-- add extstress
+!qepy <--
   IF (xclib_dft_is('hybrid')) THEN
      sigmaexx = exx_stress()
      CALL symmatrix( sigmaexx )
@@ -285,7 +287,7 @@ SUBROUTINE qepy_stress( sigma, icalc )
      WRITE(stdout,*) (sigmaion(l,1),sigmaion(l,2),sigmaion(l,3), l=1,3)
   ENDIF
   !
-  !qepy --> assignment
+!qepy -->
   call embed%stress%reset(0.d0)
   embed%stress%sigma            = sigma
   embed%stress%sigmakin         = sigmakin
@@ -306,7 +308,7 @@ SUBROUTINE qepy_stress( sigma, icalc )
   embed%stress%sigmael          = sigmael
   embed%stress%sigmaion         = sigmaion
   embed%stress%sigmaext         = embed%extstress
-  !qepy <-- assignment
+!qepy <--
   CALL stop_clock( 'stress' )
   !
   RETURN
@@ -328,4 +330,6 @@ SUBROUTINE qepy_stress( sigma, icalc )
          &   5x,'MDB     stress (kbar)',3f10.2/2(26x,3f10.2/)/ &
          &   5x,'3D-RISM stress (kbar)',3f10.2/2(26x,3f10.2/)) 
   !
+!qepy -->
 END SUBROUTINE qepy_stress
+!qepy <--

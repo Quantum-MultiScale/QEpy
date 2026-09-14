@@ -6,7 +6,9 @@
 ! or http://www.gnu.org/copyleft/gpl.txt .
 !
 !----------------------------------------------------------------------------
+!qepy -->
 SUBROUTINE qepy_forces(icalc)
+!qepy <--
   !----------------------------------------------------------------------------
   !! This routine is a driver routine which computes the forces
   !! acting on the atoms. The complete expression of the forces
@@ -26,7 +28,7 @@ SUBROUTINE qepy_forces(icalc)
   !
   USE kinds,             ONLY : DP
   USE io_global,         ONLY : stdout
-  USE cell_base,         ONLY : at, bg, alat, omega  
+  USE cell_base,         ONLY : at, bg, alat, omega, pbc
   USE ions_base,         ONLY : nat, ntyp => nsp,nsp, ityp, tau, zv, amass, extfor, atm
   USE gvect,             ONLY : ngm, gstart, ngl, igtongl, g, gg, gcutm
   USE lsda_mod,          ONLY : nspin
@@ -39,7 +41,7 @@ SUBROUTINE qepy_forces(icalc)
   USE extfield,          ONLY : tefield, forcefield, gate, forcegate, relaxz
   USE control_flags,     ONLY : gamma_only, remove_rigid_rot, textfor, &
                                 iverbosity, llondon, ldftd3, lxdm, ts_vdw, &
-                                mbd_vdw, lforce => tprnfor, istep
+                                mbd_vdw, lforce, istep
   USE bp,                ONLY : lelfield, gdir, l3dstring, efield_cart, &
                                 efield_cry,efield
   USE uspp,              ONLY : okvan
@@ -71,12 +73,10 @@ SUBROUTINE qepy_forces(icalc)
   USE oscdft_base,         ONLY : oscdft_ctx
   USE oscdft_forces_subs,  ONLY : oscdft_apply_forces, oscdft_print_forces
 #endif
-#if defined(__LEGACY_PLUGINS) 
-  USE plugin_flags,        ONLY : plugin_ext_forces, plugin_int_forces
-#endif 
-  !
+!qepy -->
   USE becmod, ONLY: becp, deallocate_bec_type, is_allocated_bec_type
   USE qepy_common,          ONLY : embed
+!qepy <--
   !
   IMPLICIT NONE
   !
@@ -84,20 +84,15 @@ SUBROUTINE qepy_forces(icalc)
                            forcelc(:,:),         &
                            forcecc(:,:),         &
                            forceion(:,:),        &
+                           forcescc(:,:),        &
+                           forceh(:,:), &
                            force_disp(:,:),      &
                            force_d3(:,:),        &
                            force_disp_xdm(:,:),  &
                            force_mt(:,:),        &
-                           forcescc(:,:),        &
                            forces_bp_efield(:,:),&
-                           forceh(:,:), &
                            force_sol(:,:)
-  ! nonlocal, local, core-correction, ewald, scf correction terms, and hubbard
-  !
-  ! aux is used to store a possible additional density
-  ! now defined in real space
-  !
-  COMPLEX(DP), ALLOCATABLE :: auxg(:), auxr(:)
+  ! Each force term has its own array
   !
   REAL(DP) :: sumscf, sum_mm
   REAL(DP), PARAMETER :: eps = 1.e-12_dp
@@ -105,12 +100,14 @@ SUBROUTINE qepy_forces(icalc)
   ! counter on polarization
   ! counter on atoms
   !
-  REAL(DP) :: latvecs(3,3)
+  REAL(DP), ALLOCATABLE :: taupbc(:,:)
   INTEGER :: atnum(1:nat)
   REAL(DP) :: stress_dftd3(3,3)
+  ! Auxiliary variables for DFT-D3
   !
   INTEGER :: ierr
   !
+!qepy -->
   integer,intent(in),optional             :: icalc
   integer                                 :: calctype
   !
@@ -120,6 +117,7 @@ SUBROUTINE qepy_forces(icalc)
      calctype = 0
   end if
   !
+!qepy <--
   force(:,:)    = 0.D0
   !
   ! Early return if all forces to be set to zero
@@ -138,10 +136,9 @@ SUBROUTINE qepy_forces(icalc)
   ALLOCATE( forcenl(3,nat), forcelc(3,nat), forcecc(3,nat), &
             forceh(3,nat), forceion(3,nat), forcescc(3,nat) )
   !    
-  !qepy --> 
+!qepy -->
   if (is_allocated_bec_type(becp)) call deallocate_bec_type(becp)
-  !qepy <-- 
-  !
+!qepy <--
   forcescc(:,:) = 0.D0
   forceh(:,:)   = 0.D0
   !
@@ -153,24 +150,32 @@ SUBROUTINE qepy_forces(icalc)
   !
   ! ... The local contribution
   !
+!qepy -->
   if (iand(calctype,2) == 0) then
+!qepy <--
   call start_clock('frc_lc')
   CALL force_lc( nat, tau, ityp, ntyp, alat, omega, ngm, ngl, igtongl, &
                  g, rho%of_r(:,1), gstart, gamma_only, vloc, forcelc )
   call stop_clock('frc_lc')
+!qepy -->
   else
      forcelc(:,:) = 0.D0
   end if
+!qepy <--
   !
   ! ... The NLCC contribution
   !
+!qepy -->
   if (iand(calctype,4) == 0) then
+!qepy <--
   call start_clock('frc_cc')
   CALL force_cc( forcecc )
   call stop_clock('frc_cc')
+!qepy -->
   else
      forcecc(:,:) = 0.D0
   end if
+!qepy <--
 
   ! ... The Hubbard contribution
   !     (included by force_us if using beta as local projectors)
@@ -179,16 +184,20 @@ SUBROUTINE qepy_forces(icalc)
   !
   ! ... The ionic contribution is computed here
   !
+!qepy -->
   if (iand(calctype,1) == 0) then
+!qepy <--
   IF( do_comp_esm ) THEN
      CALL esm_force_ew( forceion )
   ELSE
      CALL force_ew( alat, nat, ntyp, ityp, zv, at, bg, tau, omega, g, &
                     gg, ngm, gstart, gamma_only, gcutm, strf, forceion )
   ENDIF
+!qepy -->
   else
      forceion(:,:) = 0.D0
   end if
+!qepy <--
   !
   ! ... the semi-empirical dispersion correction
   !
@@ -207,13 +216,16 @@ SUBROUTINE qepy_forces(icalc)
     CALL start_clock('force_dftd3')
     ALLOCATE( force_d3(3, nat) )
     force_d3(:,:) = 0.0_DP
-    latvecs(:,:) = at(:,:)*alat
-    tau(:,:) = tau(:,:)*alat
-    atnum(:) = get_atomic_number(atm(ityp(:)))
-    CALL dftd3_pbc_gdisp( dftd3, tau, atnum, latvecs, &
+    ! taupbc are atomic positions in alat units, centered around r=0
+    ALLOCATE ( taupbc (3,nat) )
+    DO na=1,nat
+       taupbc(:,na) = pbc( tau(:,na)*alat )
+       atnum(na) = get_atomic_number(atm(ityp(na)))
+    END DO
+    CALL dftd3_pbc_gdisp( dftd3, taupbc, atnum, alat*at, &
                           force_d3, stress_dftd3 )
     force_d3 = -2.d0*force_d3
-    tau(:,:) = tau(:,:)/alat
+    DEALLOCATE( taupbc)
     CALL stop_clock('force_dftd3')
   ENDIF
   !
@@ -226,7 +238,9 @@ SUBROUTINE qepy_forces(icalc)
   !
   ! ... The SCF contribution
   !
+!qepy -->
   if (calctype == 0) then
+!qepy <--
   call start_clock('frc_scc')
 #if defined(__CUDA)
   ! Cleanup scratch space again, next subroutines uses a lot of memory.
@@ -237,7 +251,9 @@ SUBROUTINE qepy_forces(icalc)
   !
   CALL force_corr( forcescc )
   call stop_clock('frc_scc') 
+!qepy -->
   endif
+!qepy <--
   !
   IF (do_comp_mt) THEN
     !
@@ -262,12 +278,12 @@ SUBROUTINE qepy_forces(icalc)
   IF (use_environ) CALL calc_environ_force(force)
 #endif
 #if defined (__OSCDFT)
-  IF (use_oscdft) CALL oscdft_apply_forces(oscdft_ctx)
+  IF (use_oscdft .AND. (oscdft_ctx%inp%oscdft_type==1)) CALL oscdft_apply_forces(oscdft_ctx)
 #endif
-  !
-  !qepy --> add external forces
+!qepy -->
+! add external forces
   if (allocated(embed%extforces)) force(:,:) = force(:,:) + embed%extforces
-  !qepy <-- add external forces
+!qepy <--
   !
   ! ... Berry's phase electric field terms
   !
@@ -326,7 +342,9 @@ SUBROUTINE qepy_forces(icalc)
         !
      ENDDO
      !
+!qepy -->
      if (calctype == 0) then
+!qepy <--
      !TB
      IF ((gate.AND.relaxz).AND.(ipol==3)) WRITE( stdout, '("Total force in z direction = 0 disabled")')
      !
@@ -348,7 +366,9 @@ SUBROUTINE qepy_forces(icalc)
         ENDDO
         !
      ENDIF
+!qepy -->
      endif
+!qepy <--
      !
   ENDDO
   !
@@ -362,12 +382,16 @@ SUBROUTINE qepy_forces(icalc)
   !
   ! ... resymmetrize (should not be needed, but ...)
   !
+!qepy -->
   if (calctype == 0) then
+!qepy <--
   CALL symvector( nat, force )
   !
   IF ( remove_rigid_rot ) &
      CALL remove_tot_torque( nat, tau, amass(ityp(:)), force  )
+!qepy -->
   endif
+!qepy <--
   !
   IF( textfor ) force(:,:) = force(:,:) + extfor(:,:)
   !
@@ -394,10 +418,8 @@ SUBROUTINE qepy_forces(icalc)
   force(:,:)    = force(:,:)    * DBLE( if_pos )
   forcescc(:,:) = forcescc(:,:) * DBLE( if_pos )
   !
-!civn 
-! IF ( iverbosity > 0 ) THEN
-  IF ( .true.         ) THEN
-!
+  IF ( iverbosity > 0 ) THEN
+     !
      IF ( do_comp_mt ) THEN
         WRITE( stdout, '(5x,"The Martyna-Tuckerman correction term to forces")')
         DO na = 1, nat
@@ -482,7 +504,7 @@ SUBROUTINE qepy_forces(icalc)
      !
   END IF
 #if defined (__OSCDFT)
-  IF (use_oscdft) CALL oscdft_print_forces(oscdft_ctx)
+  IF (use_oscdft .AND. (oscdft_ctx%inp%oscdft_type==1)) CALL oscdft_print_forces(oscdft_ctx)
 #endif
   !
   sumfor = 0.D0
@@ -570,4 +592,6 @@ SUBROUTINE qepy_forces(icalc)
   !
 9035 FORMAT(5X,'atom ',I4,' type ',I2,'   force = ',3F14.8)
   !
+!qepy -->
 END SUBROUTINE qepy_forces
+!qepy <--

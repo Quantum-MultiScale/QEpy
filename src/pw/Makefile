@@ -1,7 +1,9 @@
 QESRC_DIR = PW/src
 PNAME = qepy_pw
-QEPY_LIBS = -L$(BUILDDIR) -lqepy_ks_solvers -lqepy_dft_d3 $(MODS_BASE)
-QEPY_INCS = -I. -I$(QEDIR)/$(QESRC_DIR) -I$(BUILDDIR)/ks_solvers -I$(QEDIR)/KS_Solvers -I$(BUILDDIR)/dft_d3 -I$(QEDIR)/dft-d3 $(INCS_MODS_BASE) $(INCS_MODS_BASE_QE)
+QEPY_LIBS = -L$(PYBUILDDIR) -lqepy_ks_solvers -lqepy_dft_d3 $(MODS_BASE)
+QEPY_INCS = -I. -I$(QEDIR)/$(QESRC_DIR) -I$(PYBUILDDIR)/ks_solvers -I$(QEDIR)/KS_Solvers -I$(PYBUILDDIR)/dft_d3 -I$(QEDIR)/dft-d3 $(INCS_MODS_BASE) $(INCS_MODS_BASE_QE)
+
+SKIPTYPES = 
 
 QEPY_OBJS = qepy_common.o \
 qepy_mod.o \
@@ -20,11 +22,11 @@ qepy_v_of_rho_all.o
 
 QEPY_PROG_OBJS = pwscf.o
 
-QEPY_FIX_OBJS = wfcinit.o \
-setup.o \
-read_file_new.o \
-pw_restart_new.o \
-potinit.o
+QEPY_FIX_OBJS = qepyfix_wfcinit.o \
+qepyfix_setup.o \
+qepyfix_read_file_new.o \
+qepyfix_pw_restart_new.o \
+qepyfix_potinit.o
 
 CROSS_FPP_FILES = ../fftxlib/fft_types.fpp
 
@@ -49,7 +51,8 @@ update_pot.o \
 v_of_rho.o \
 symm_base.o \
 symme.o \
-symmetrize_at.o
+symmetrize_at.o \
+starting_scf_mod.o
 
 LIB_OBJS_TEMP = Coul_cut_2D.o \
 a2fmod.o \
@@ -59,23 +62,20 @@ add_dmft_occ.o \
 add_efield.o \
 add_gatefield.o \
 add_paw_to_deeq.o \
-add_paw_to_deeq_gpu.o \
+add_paw_to_deeq_acc.o \
 add_qexsd_step.o \
 add_vhub_to_deeq.o \
-add_vhub_to_deeq_gpu.o \
+add_vhub_to_deeq_acc.o \
 add_vuspsi.o \
-add_vuspsi_gpu.o \
-additional_cusolver_subs.o \
+add_vuspsi_acc.o \
 addusdens.o \
 addusforce.o \
 addusstress.o \
 allocate_fft.o \
 allocate_locpot.o \
-allocate_nlpot.o \
 allocate_wfc.o \
 atomic_rho.o \
 atomic_wfc.o \
-atomic_wfc_gpu.o \
 atomic_wfc_mod.o \
 average_pp.o \
 beef.o \
@@ -97,16 +97,13 @@ compute_qdipol.o \
 compute_qdipol_so.o \
 compute_rho.o \
 compute_ux.o \
-coset.o \
+d3hess_mod.o \
 d_matrix.o \
 data_structure.o \
-deriv_drhoc.o \
+diag_direct.o \
 divide_class.o \
 divide_class_so.o \
 divide_et_impera.o \
-drhoc.o \
-drhoc_gpu.o \
-dvloc_of_g.o \
 dynamics_module.o \
 efermig.o \
 efermit.o \
@@ -125,8 +122,10 @@ ewald.o \
 ewald_dipole.o \
 extfield.o \
 exx.o \
-exx_band.o \
 exx_base.o \
+exx_bp.o \
+exx_bp_utils.o \
+exx_std.o \
 fcp_capacitance.o \
 fcp_dyn_calcavg.o \
 fcp_dyn_printavg.o \
@@ -146,9 +145,7 @@ forces.o \
 forces_bp_efield.o \
 g2_kin.o \
 g_psi.o \
-g_psi_gpu.o \
 g_psi_mod.o \
-g_psi_mod_gpu.o \
 gcscf_input.o \
 gcscf_module.o \
 gen_at_dj.o \
@@ -160,14 +157,11 @@ gweights.o \
 h_epsi_her_apply.o \
 h_epsi_her_set.o \
 h_psi.o \
-h_psi_gpu.o \
 h_psi_meta.o \
 hinit0.o \
 hinit1.o \
 hs_1psi.o \
-hs_1psi_gpu.o \
 hs_psi.o \
-hs_psi_gpu.o \
 hubbard.o \
 init_ns.o \
 init_nsg.o \
@@ -178,7 +172,7 @@ init_vloc.o \
 input.o \
 intersite_V.o \
 io_rho_xml.o \
-irrek.o \
+irreducible_BZ.o \
 iweights.o \
 kpoint_grid.o \
 lchk_tauxk.o \
@@ -186,7 +180,6 @@ ldaU.o \
 loc_scdm.o \
 loc_scdm_k.o \
 make_pointlists.o \
-makov_payne.o \
 manypw.o \
 martyna_tuckerman.o \
 memory_report.o \
@@ -198,20 +191,19 @@ new_ns.o \
 new_nsb.o \
 new_nsg.o \
 new_occ.o \
-newd.o \
-newd_gpu.o \
+newd_acc.o \
 non_scf.o \
 ns_adj.o \
-nsg_adj.o \
 offset_atom_wfc.o \
 openfil.o \
 orbm_kubo.o \
+orthoUwfc.o \
 ortho_wfc.o \
 orthoatwfc.o \
-orthoatwfc_gpu.o \
 oscdft_base.o \
 oscdft_context.o \
 oscdft_enums.o \
+oscdft_extended.o \
 oscdft_forces.o \
 oscdft_forces_subs.o \
 oscdft_functions.o \
@@ -221,9 +213,7 @@ oscdft_input.o \
 oscdft_occupations.o \
 oscdft_wavefunction.o \
 oscdft_wavefunction_subs.o \
-oscdft_wavefunction_subs_gpu.o \
 oscdft_wfcO.o \
-oscdft_wfcO_gpu.o \
 output_tau.o \
 para.o \
 paw_exx.o \
@@ -249,6 +239,7 @@ plus_u_full.o \
 potinit.o \
 print_clock_pw.o \
 print_ks_energies.o \
+printpot.o \
 punch.o \
 pw2blip.o \
 pw2casino.o \
@@ -256,7 +247,6 @@ pw2casino_write.o \
 pw_init_qexsd_input.o \
 pw_restart_new.o \
 pwcom.o \
-pwcom_gpu.o \
 rdiagh.o \
 read_conf_from_file.o \
 read_file_new.o \
@@ -267,19 +257,15 @@ restart_in_electrons.o \
 rho2zeta.o \
 rism_module.o \
 rotate_wfc.o \
-rotate_wfc_gpu.o \
 run_driver.o \
 run_pwscf.o \
 ruotaijk.o \
 s_1psi.o \
-s_1psi_gpu.o \
 s_psi.o \
-s_psi_gpu.o \
 save_in_cbands.o \
 save_in_electrons.o \
 scale_h.o \
 scf_mod.o \
-scf_mod_gpu.o \
 scissor.o \
 set_kplusq.o \
 set_kup_and_kdw.o \
@@ -291,6 +277,7 @@ setlocal.o \
 setup.o \
 sic.o \
 start_k.o \
+starting_scf_mod.o \
 stop_run.o \
 stres_cc.o \
 stres_ewa.o \
@@ -305,7 +292,6 @@ stres_us.o \
 stress.o \
 struct_fact.o \
 sum_band.o \
-sum_band_gpu.o \
 sumkg.o \
 sumkt.o \
 summary.o \
@@ -315,30 +301,27 @@ symmetrize_at.o \
 tetra.o \
 transform_becsum_nc.o \
 transform_becsum_so.o \
-transform_qq_so.o \
 trnvecc.o \
 two_chem.o \
 update_pot.o \
 us_exx.o \
 usnldiag.o \
-usnldiag_gpu.o \
 utils.o \
 utils_gpu.o \
+v_hubbard.o \
 v_of_rho.o \
 vcsmd.o \
 vcsubs.o \
 vhpsi.o \
-vhpsi_gpu.o \
-vloc_of_g.o \
-vloc_psi.o \
-vloc_psi_gpu.o \
+vhpsi_U.o \
+vloc_psi_acc.o \
+vloc_psi_tg.o \
 wannier_check.o \
 wannier_clean.o \
 wannier_init.o \
 wannier_occ.o \
 weights.o \
 wfcinit.o \
-wfcinit_gpu.o \
 write_ns.o \
 wsweight.o \
 xdm_dispersion.o

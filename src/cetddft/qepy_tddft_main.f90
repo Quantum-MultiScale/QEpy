@@ -7,7 +7,9 @@
 !
 
 !-----------------------------------------------------------------------
+!qepy -->
 SUBROUTINE qepy_tddft_main_initial(infile, my_world_comm)
+!qepy <--
   !-----------------------------------------------------------------------
   !
   ! ... This is the main driver of the real time TDDFT propagation.
@@ -18,7 +20,9 @@ SUBROUTINE qepy_tddft_main_initial(infile, my_world_comm)
   ! ...
   USE kinds,           ONLY : DP
   USE io_global,       ONLY : stdout, meta_ionode, meta_ionode_id
+!qepy -->
   !USE mp,              ONLY : mp_bcast
+!qepy <--
   USE tddft_module,    ONLY : job, molecule, max_seconds
   USE check_stop,      ONLY : check_stop_init
   USE control_flags,   ONLY : io_level, gamma_only, use_para_diag
@@ -37,35 +41,43 @@ SUBROUTINE qepy_tddft_main_initial(infile, my_world_comm)
                                ibrav_ => ibrav
   USE ions_base,        ONLY : nat, ntyp => nsp
   USE cell_base,        ONLY : ibrav
+!qepy -->
   !USE tddft_version
   USE qepy_common,      ONLY : embed_base, set_embed, messenger, p_embed => embed
+!qepy <--
   !------------------------------------------------------------------------
   IMPLICIT NONE
   CHARACTER (LEN=9)   :: code = 'TDDFT'
   LOGICAL, EXTERNAL  :: check_para_diag
-  !
+!qepy -->
   CHARACTER(len=*) :: infile
   INTEGER, INTENT(IN), OPTIONAL :: my_world_comm
+!qepy <--
   !------------------------------------------------------------------------
 
   ! begin with the initialization part
-  !
+!qepy -->
   if (.not. associated(p_embed)) call set_embed(messenger)
-  !
+!qepy <--
 #ifdef __MPI
+!qepy -->
   IF ( PRESENT(my_world_comm)) THEN
      CALL mp_startup(my_world_comm=my_world_comm, start_images=.TRUE. )
   ELSE
      CALL mp_startup( start_images=.TRUE. )
   ENDIF
+!qepy <--
 #else
+!qepy -->
   IF ( PRESENT(my_world_comm)) THEN
      CALL mp_startup(my_world_comm=my_world_comm, start_images=.false. )
   ELSE
      CALL mp_startup( start_images=.false. )
   ENDIF
+!qepy <--
 #endif
   call set_mpi_comm_4_solvers( intra_pool_comm, intra_bgrp_comm, inter_bgrp_comm)
+
   call environment_start (code)
 
   ! read plugin command line arguments, if any
@@ -74,25 +86,34 @@ SUBROUTINE qepy_tddft_main_initial(infile, my_world_comm)
 
 #ifndef __BANDS
   if (nbgrp > 1) &
+!qepy -->
     !call errore('tddft_main', 'configure and recompile TDDFT with --enable-band-parallel', 1)
     call errore('tddft_main', 'reinstall the TDDFT with -D__BANDS', 1)
+!qepy <--
 #endif
 
   write(stdout,*)
+!qepy -->
   !write(stdout,'(5X,''***** This is TDDFT git revision '',A,'' *****'')') tddft_git_revision
+!qepy <--
   write(stdout,'(5X,''***** you can cite: X. Qian et al. Phys. Rev. B 73, 035408 (2006)         *****'')')
   write(stdout,'(5X,''***** in publications or presentations arising from this work.            *****'')')
   write(stdout,*)
 
+!qepy -->
   call qepy_tddft_readin(infile)
   !call check_stop_init( max_seconds )
+!qepy <--
 
   io_level = 1
  
   ! read ground state wavefunctions
+!qepy -->
   !call read_file
 END SUBROUTINE qepy_tddft_main_initial
+!qepy <--
 !
+!qepy -->
 SUBROUTINE qepy_tddft_main_setup()
   !-----------------------------------------------------------------------
   !
@@ -133,6 +154,7 @@ SUBROUTINE qepy_tddft_main_setup()
   !------------------------------------------------------------------------
 
   io_level = 1
+!qepy <--
 
   call tddft_openfil
 
@@ -149,8 +171,10 @@ SUBROUTINE qepy_tddft_main_setup()
   assume_isolated_ = 'none'
 
   call plugin_read_input()
+!qepy -->
   call qepy_tddft_allocate()
   call qepy_tddft_setup()
+!qepy <--
   call tddft_summary()
 
 #ifdef __BANDS
@@ -158,6 +182,7 @@ SUBROUTINE qepy_tddft_main_setup()
 #endif
 
   ! calculation
+!qepy -->
   !select case (trim(job))
   !case ('optical')
   !   if (molecule) then
@@ -172,7 +197,9 @@ SUBROUTINE qepy_tddft_main_setup()
   !end select
   
 END subroutine qepy_tddft_main_setup
+!qepy <--
 !
+!qepy -->
 SUBROUTINE qepy_stop_tddft(print_flag)
   USE environment,     ONLY : environment_start, environment_end
   !
@@ -186,15 +213,19 @@ SUBROUTINE qepy_stop_tddft(print_flag)
   ELSE
      iprint = 0
   ENDIF
-
+!qepy <--
   ! print timings and stop the code
+!qepy -->
   call qepy_tddft_closefil
   IF ( iprint > 0 .and. iprint<10 ) THEN
+!qepy <--
   call print_clock_tddft
   call environment_end(code)
+!qepy -->
   ENDIF
   !call stop_code( .true. )
   !STOP
 
 END SUBROUTINE qepy_stop_tddft
+!qepy <--
 

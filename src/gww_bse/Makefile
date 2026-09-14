@@ -1,7 +1,9 @@
 QESRC_DIR = GWW/bse
 PNAME = qepy_gww_bse
-QEPY_LIBS = -L$(BUILDDIR) -lqepy_gww_gww -lqepy_gww_minpack $(MODS_PW)
-QEPY_INCS = -I. -I$(QEDIR)/$(QESRC_DIR) -I$(BUILDDIR)/gww_gww -I$(QEDIR)/GWW/gww -I$(BUILDDIR)/gww_minpack -I$(QEDIR)/GWW/minpack $(INCS_MODS_PW) $(INCS_MODS_PW_QE) -I$(BUILDDIR)/gww_pw4gww -I$(QEDIR)/GWW/pw4gww
+QEPY_LIBS = -L$(PYBUILDDIR) -lqepy_gww_gww -lqepy_gww_minpack $(MODS_PW)
+QEPY_INCS = -I. -I$(QEDIR)/$(QESRC_DIR) -I$(PYBUILDDIR)/gww_gww -I$(QEDIR)/GWW/gww -I$(PYBUILDDIR)/gww_minpack -I$(QEDIR)/GWW/minpack $(INCS_MODS_PW) $(INCS_MODS_PW_QE) -I$(PYBUILDDIR)/gww_pw4gww -I$(QEDIR)/GWW/pw4gww
+
+SKIPTYPES = 
 
 QEPY_OBJS = 
 

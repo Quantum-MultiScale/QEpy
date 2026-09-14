@@ -1,4 +1,4 @@
 [submodule "src/ce-tddft"]
 	path = src/ce-tddft
 	url = https://github.com/dceresoli/ce-tddft.git
-	branch = 7.2
+	branch = master

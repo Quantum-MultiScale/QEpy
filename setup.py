@@ -8,7 +8,7 @@ from setuptools import setup, find_packages, Extension
 from setuptools.command.build_ext import build_ext
 
 name = 'qepy'
-qe_branch = 'qe-7.2'
+qe_branch = 'qe-7.6'
 
 class MakeBuild(build_ext):
     def run(self):
@@ -62,6 +62,11 @@ class MakeBuild(build_ext):
                 subprocess.run("cat install/config.log", cwd=qedir, env = env, shell=True)
                 raise RuntimeError('QE configure failed.')
 
+            # Fix ' -pg' in Makefile
+            p=qedir + '/PIOUD/src/Makefile'
+            lines=open(p).readlines()
+            open(p,'w').writelines(l for l in lines if ' -pg' not in l)
+            #
             res = subprocess.run("make all " + build_args, cwd=qedir, env = env, shell=True, capture_output=True, text=True)
             if res.returncode > 0 :
                 print(res.stderr[-100:], flush=True)

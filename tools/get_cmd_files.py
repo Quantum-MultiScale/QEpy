@@ -3,6 +3,7 @@
 
 from pathlib import Path
 import re
+import os
 import sys
 import configparser
 
@@ -38,6 +39,9 @@ def get_cmd_from_file(filename, path=None, ignore=r'.*test.*', cmds=None):
                     if main not in cmds: continue
                 if file:
                     file = path / file
+                else:
+                    tmpf = (path / main).with_suffix(".f90")
+                    if tmpf.is_file(): file = tmpf
                 cmds[main] = file
     return cmds
 
@@ -45,7 +49,7 @@ def get_cmd_from_file(filename, path=None, ignore=r'.*test.*', cmds=None):
 if len(sys.argv) > 1 :
     path = Path(sys.argv[1])
 else :
-    path = Path.cwd()
+    path = Path(os.environ.get('qedir', '.'))
 
 ignore_folder=['GUI', 'S3DE', 'Doc', 'test-suite', 'external', 'W90']
 

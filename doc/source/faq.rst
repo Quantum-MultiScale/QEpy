@@ -167,6 +167,10 @@ MacOS
 
       Add ``-headerpad_max_install_names`` to the **LDFLAGS**.
 
+   #. *ld: library 'gcrt1.o' not found*
+
+      Remove the ``F90FLAGS += -pg`` and ``LDFLAGS += -pg`` from the Makefile, for example `PIOUD/src/Makefile` of QE-7.6.
+
 QE
 --
    #. *compilation aborted for mbd_c_api.F90*

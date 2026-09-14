@@ -532,7 +532,8 @@ CONTAINS
    SUBROUTINE qepy_calc_effective_potential(potential, gather)
       USE kinds,                ONLY : DP
       USE ions_base,            ONLY : nat, ntyp => nsp
-      USE scf,                  ONLY : rho, rho_core, rhog_core, v, vltot, vrs
+      USE scf,                  ONLY : rho, rho_core, rhog_core, tau_core, v, vltot, &
+                                       vrs, kedtau, vnew
       USE ener,                 ONLY : etot, hwf_energy, eband, deband, ehart, &
                                        vtxc, etxc, etxcc, ewld, demet, epaw, &
                                        elondon, edftd3, ef_up, ef_dw
@@ -551,7 +552,7 @@ CONTAINS
       gather_ = .true.
       IF ( present(gather) ) gather_ = gather
       !
-      CALL qepy_v_of_rho_all( rho, rho_core, rhog_core, &
+      CALL qepy_v_of_rho_all( rho, rho_core, rhog_core, tau_core, &
          ehart, etxc, vtxc, eth, etotefield, charge, v)
       !
       IF ( present(potential) ) THEN
@@ -565,10 +566,14 @@ CONTAINS
       USE scf,                  ONLY : kedtau, v, vltot, vrs
       USE lsda_mod,             ONLY : nspin
       USE gvecs,                ONLY : doublegrid
+      USE fft_base,             ONLY : dfftp, dffts
+      USE xc_lib,               ONLY : xclib_dft_is
+      USE fft_interfaces,       ONLY : fft_interpolate
       !
       IMPLICIT NONE
       REAL(DP),INTENT(IN)             :: potential(:,:)
       LOGICAL,INTENT(in),OPTIONAL     :: gather
+      INTEGER                         :: is
       !
       LOGICAL :: gather_
       !
@@ -577,7 +582,13 @@ CONTAINS
       !
       call qepy_get_value(potential, vrs, gather = gather_)
       !
-      CALL interpolate_vrs( dfftp%nnr, nspin, doublegrid, kedtau, v%kin_r, vrs )
+      !CALL interpolate_vrs( dfftp%nnr, nspin, doublegrid, kedtau, v%kin_r, vrs )
+      ! ... interpolate it on the smooth mesh if necessary
+      !
+      DO is = 1, nspin
+         IF (doublegrid) CALL fft_interpolate( dfftp, vrs(:, is), dffts, vrs(:, is) )
+         IF (xclib_dft_is('meta')) CALL fft_interpolate( dfftp, v%kin_r(:,is), dffts, kedtau(:,is) )
+      ENDDO
       !
    END SUBROUTINE
 
@@ -864,8 +875,6 @@ CONTAINS
       USE kinds,                ONLY : DP
       USE control_flags,        ONLY : gamma_only
       USE wavefunctions,        ONLY : evc, psic
-      USE wavefunctions_gpum,   ONLY : using_evc
-      USE wvfct_gpum,           ONLY : using_et
       USE gvect,                ONLY : g, ngm
       USE klist,                ONLY : nks, igk_k, ngk, xk
       USE lsda_mod,             ONLY : lsda,  nspin
@@ -899,12 +908,10 @@ CONTAINS
       ALLOCATE (kplusg_evc(npwx,1))
       ALLOCATE (kin_g(ngm,nspin))
       DO ispin = 1, nspin
-         CALL using_evc(0); CALL using_et(0)
          DO ik = 1, nk
             ikk = ik + nk*(ispin-1)
             npw = ngk(ikk)
             IF( nks > 1 ) CALL get_buffer (evc, nwordwfc, iunwfc, ikk )
-            IF( nks > 1 ) CALL using_evc(2)
             DO ibnd = 1, nbnd
                w1 = wg(ibnd,ikk)
                DO j = 1, 3
@@ -945,8 +952,6 @@ CONTAINS
       USE kinds,                ONLY : DP
       USE control_flags,        ONLY : gamma_only
       USE wavefunctions,        ONLY : evc, psic
-      USE wavefunctions_gpum,   ONLY : using_evc
-      USE wvfct_gpum,           ONLY : using_et
       USE gvect,                ONLY : g, ngm
       USE klist,                ONLY : nks, igk_k, ngk, xk
       USE lsda_mod,             ONLY : lsda,  nspin
@@ -981,12 +986,10 @@ CONTAINS
       ALLOCATE ( g2kin(npwx), evcg(npwx,1), psicg(size(psic)))
       ALLOCATE (kin_g(ngm,nspin))
       DO ispin = 1, nspin
-         CALL using_evc(0); CALL using_et(0)
          DO ik = 1, nk
             ikk = ik + nk*(ispin-1)
             npw = ngk(ikk)
             IF( nks > 1 ) CALL get_buffer (evc, nwordwfc, iunwfc, ikk )
-            IF( nks > 1 ) CALL using_evc(2)
             g2kin(1:npw) = ( ( xk(1,ikk) + g(1,igk_k(1:npw,ikk)) )**2 + &
                              ( xk(2,ikk) + g(2,igk_k(1:npw,ikk)) )**2 + &
                              ( xk(3,ikk) + g(3,igk_k(1:npw,ikk)) )**2 ) * tpiba2

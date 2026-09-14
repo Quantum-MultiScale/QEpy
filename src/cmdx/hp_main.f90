@@ -20,7 +20,8 @@ SUBROUTINE hp_main()
   USE environment,       ONLY : environment_start, environment_end
   USE ions_base,         ONLY : nat, ityp, atm, tau, amass
   USE io_files,          ONLY : tmp_dir
-  USE control_flags,     ONLY : dfpt_hub, use_para_diag, use_gpu
+  USE control_flags,     ONLY : use_para_diag, use_gpu
+  USE ldaU,              ONLY : dfpt_hub
   USE ldaU_hp,           ONLY : perturbed_atom, start_q, last_q, nqs, code, &
                                 compute_hp, sum_pertq, perturb_only_atom,   &
                                 determine_num_pert_only, tmp_dir_save,      &
@@ -233,7 +234,7 @@ SUBROUTINE hp_main()
      CALL hp_print_clock()
   ENDIF
   !
-  CALL environment_end(code)
+  CALL environment_end( )
   !
   IF ( use_para_diag ) CALL laxlib_end() 
   CALL mp_global_end()
@@ -252,8 +253,14 @@ SUBROUTINE hp_print_preamble()
   WRITE( stdout, '(/5x,"      Calculation of Hubbard parameters using the HP code based on DFPT      ")')
   WRITE( stdout, '(/5x,"          Please cite the following papers when using this program:          ")')
   WRITE( stdout, '(/5x,"            - HP code : Comput. Phys. Commun. 279, 108455 (2022).            ")')
-  WRITE( stdout, '(/5x,"            - Theory  : Phys. Rev. B 98,  085127 (2018) and                  ")')
-  WRITE( stdout, '(/5x,"                        Phys. Rev. B 103, 045141 (2021).                     ")')
+  WRITE( stdout, '(/5x,"                                                                             ")')
+  WRITE( stdout, '(/5x,"      For a nonrelativistic, collinear calculation:                          ")')
+  WRITE( stdout, '(/5x,"            - Theory  : I. Timrov et al, Phys. Rev. B 98,  085127 (2018) and ")')
+  WRITE( stdout, '(/5x,"                        I. Timrov et al, Phys. Rev. B 103, 045141 (2021).    ")')
+  WRITE( stdout, '(/5x,"                                                                             ")')
+  WRITE( stdout, '(/5x,"      For a fully-relativistic, and/or noncollinear calculation:             ")')
+  WRITE( stdout, '(/5x,"            - Theory  : L. Binci et al., Phys. Rev. B 108, 115157 (2023) and ")')
+  WRITE( stdout, '(/5x,"                        I. Timrov et al, Phys. Rev. B 98,  085127 (2018) ")')
   WRITE( stdout, '(/5x,"=-----------------------------------------------------------------------------=")')
   !
   RETURN

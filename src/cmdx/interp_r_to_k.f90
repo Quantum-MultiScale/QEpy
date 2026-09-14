@@ -38,7 +38,7 @@ SUBROUTINE interp_r_to_k()
   !
   ! 5) Clean and Close 
   CALL mp_global_end()
-  CALL environment_end( code )
+  CALL environment_end( )
   !
 CONTAINS
 !

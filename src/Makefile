@@ -117,6 +117,10 @@ qepy_phonon_ph : lib_mods_lr
 	if test -d phonon_ph; then \
 	(cd phonon_ph; $(MAKE) || exit 1) ; fi
 
+qepy_pioud : lib_mods_pw
+	if test -d pioud; then \
+	(cd pioud; $(MAKE) || exit 1) ; fi
+
 qepy_pp : lib_mods_pw
 	if test -d pp; then \
 	(cd pp; $(MAKE) || exit 1) ; fi
@@ -150,7 +154,7 @@ qepy_xspectra : lib_mods_pw
 	if test -d xspectra; then \
 	(cd xspectra; $(MAKE) || exit 1) ; fi
 
-all : qepy_atomic qepy_cpv qepy_gww_bse qepy_gww_head qepy_gww_simple qepy_gww_simple_bse qepy_gww_simple_ip qepy_hp qepy_kcw_pp qepy_neb qepy_pp qepy_pwcond qepy_tddfpt qepy_xspectra
+all : qepy_atomic qepy_cpv qepy_gww_bse qepy_gww_head qepy_gww_simple qepy_gww_simple_bse qepy_gww_simple_ip qepy_hp qepy_kcw_pp qepy_neb qepy_pioud qepy_pp qepy_pwcond qepy_tddfpt qepy_xspectra
 
 qepy_cetddft : lib_mods_lr
 	if test -d cetddft; then \

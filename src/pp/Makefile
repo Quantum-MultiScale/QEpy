@@ -1,7 +1,9 @@
 QESRC_DIR = PP/src
 PNAME = qepy_pp
-QEPY_LIBS = -L$(BUILDDIR) $(MODS_PW)
+QEPY_LIBS = -L$(PYBUILDDIR) $(MODS_PW)
 QEPY_INCS = -I. -I$(QEDIR)/$(QESRC_DIR) $(INCS_MODS_PW) $(INCS_MODS_PW_QE)
+
+SKIPTYPES = atproj_type
 
 QEPY_OBJS = 
 
@@ -33,6 +35,7 @@ pw2critic.o \
 pw2gw.o \
 pw2wannier90.o \
 sumpdos.o \
+wannier2pw.o \
 wannier_ham.o \
 wannier_plot.o \
 wfck2r.o
@@ -42,7 +45,6 @@ add_shift_lc.o \
 add_shift_us.o \
 adduscore.o \
 addusdens1d.o \
-atomic_wfc_nc_proj.o \
 chdens_bspline.o \
 chdens_bspline_sphere.o \
 chdens_module.o \
@@ -95,7 +97,6 @@ add_shift_lc.o \
 add_shift_us.o \
 adduscore.o \
 addusdens1d.o \
-atomic_wfc_nc_proj.o \
 chdens_bspline.o \
 chdens_bspline_sphere.o \
 chdens_module.o \
@@ -109,9 +110,11 @@ do_shift_ew.o \
 dosg.o \
 elf.o \
 fermisurfer_common.o \
+fft_interpolation_mod.o \
 fouriermod.o \
 ggen1d.o \
 globalmod.o \
+hubbard_projectors.o \
 idwmod.o \
 local_dos.o \
 local_dos1d.o \
@@ -135,6 +138,7 @@ sym_band.o \
 vasp_read_chgcar_mod.o \
 vasp_xml_module.o \
 wannier_enrg.o \
+wannier_mod.o \
 wannier_proj.o \
 work_function.o \
 write_hamiltonians.o \

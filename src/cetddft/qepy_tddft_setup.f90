@@ -20,7 +20,7 @@ SUBROUTINE qepy_tddft_setup
   USE fft_base,      ONLY : dfftp
   USE gvecs,         ONLY : doublegrid
   USE gvect,         ONLY : ecutrho, ngm, g, gg, eigts1, eigts2, eigts3
-  USE klist,         ONLY : degauss, ngauss, nks, lgauss, wk, two_fermi_energies, ltetra
+  USE klist,         ONLY : degauss, ngauss, nks, lgauss, wk, two_fermi_energies, ltetra, qnorm
   USE ions_base,     ONLY : nat, nsp, ityp, tau
   USE noncollin_module,  ONLY : noncolin
   USE constants,     ONLY : degspin, pi
@@ -31,23 +31,27 @@ SUBROUTINE qepy_tddft_setup
   USE constants,     ONLY : rytoev
   USE cell_base,     ONLY : alat, at, bg, omega
   USE mp_bands,      ONLY : intra_bgrp_comm
+  USE atwfc_mod,     ONLY : init_tab_atwfc
   USE tddft_module
-  !
+!qepy -->
   USE qepy_common,             ONLY : embed
-  !
+!qepy <--
 
   implicit none
-  integer :: ik, ibnd
-  real(dp) :: emin, emax, xmax, small, fac, target
+  integer :: ik, ibnd, ierr
+  real(dp) :: emin, emax, xmax, small, fac, target, qmax
     
   call start_clock ('tddft_setup')
     
   ! initialize pseudopotentials and projectors for LDA+U
+  qmax = (qnorm + sqrt(ecutrho))
   call init_us_1(nat, ityp, omega, ngm, g, gg, intra_bgrp_comm)
-  call init_tab_atwfc(omega, intra_bgrp_comm)
+  call init_tab_atwfc(qmax, omega, intra_bgrp_comm, ierr)
 
   ! computes the total local potential (external+scf) on the smooth grid
+!qepy -->
   call qepy_setlocal()
+!qepy <--
   call set_vrs (vrs, vltot, v%of_r, kedtau, v%kin_r, dfftp%nnr, nspin, doublegrid)
     
   ! compute the D for the pseudopotentials
@@ -66,7 +70,9 @@ SUBROUTINE qepy_tddft_setup
      call errore('gipaw_setup','TDDFT + two Fermi energies not implemented', 1)
 
   ! computes the number of occupied bands for each k point
+!qepy -->
   IF (ALLOCATED(nbnd_occ)) DEALLOCATE(nbnd_occ)
+!qepy <--
   allocate(nbnd_occ(nks))
   nbnd_occ(:) = 0
   if (lgauss) then
@@ -149,10 +155,14 @@ SUBROUTINE qepy_tddft_setup
   endif
 
   ! initialize hamiltonian
+!qepy -->
   call qepy_update_hamiltonian(-1)
+!qepy <--
 
   call stop_clock('tddft_setup')
   
+!qepy -->
 END SUBROUTINE qepy_tddft_setup
+!qepy <--
 
 

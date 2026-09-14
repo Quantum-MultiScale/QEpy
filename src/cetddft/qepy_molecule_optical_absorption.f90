@@ -7,7 +7,9 @@
 !
 
 !-----------------------------------------------------------------------
+!qepy -->
 subroutine qepy_molecule_optical_absorption()
+!qepy <--
   !----------------------------------------------------------------------
   !  ... Compute optical absorption spectrum by real-time TDDFT 
   !  ... References:
@@ -39,7 +41,7 @@ subroutine qepy_molecule_optical_absorption()
   USE dynamics_module,             ONLY : vel, verlet, allocate_dyn_vars, deallocate_dyn_vars
   USE pwcom
   USE tddft_module
-  !
+!qepy -->
   USE qepy_common,             ONLY : embed
   USE qepy_tddft_common,       ONLY : tddft_psi, b, &
                                       tddft_hpsi, tddft_spsi, &
@@ -47,37 +49,45 @@ subroutine qepy_molecule_optical_absorption()
                                       charge, dipole, quadrupole, &
                                       circular, circular_local
   USE uspp,                    ONLY : nkb, vkb, okvan
-  !
+!qepy <--
   IMPLICIT NONE
 
   !-- tddft variables ----------------------------------------------------
+!qepy -->
   !complex(dp), allocatable :: tddft_psi(:,:,:), b(:,:)
   !complex(dp), allocatable :: tddft_hpsi(:,:), tddft_spsi(:,:)
   !complex(dp), allocatable :: tddft_Ppsi(:,:)        ! PAW correction to forces (Ehrenfest)
   !real(dp), allocatable :: charge(:), dipole(:,:), quadrupole(:,:,:)
   !complex(dp), allocatable :: circular(:,:), circular_local(:)
+!qepy <--
 
   integer :: istep, lter, flag_global
   integer :: ik, is, ibnd
+!qepy -->
   complex(dp),save :: ee                     ! i*dt/2
   real(dp),save :: anorm, wclock
+!qepy <--
   integer, external :: find_free_unit
   real(dp), external :: get_clock
   external tddft_ch_psi_all
-  !
+!qepy -->
   INTEGER :: iter
-  !
   INTEGER :: iuntemp ! unit for swap
+!qepy <--
 
   ! TODO: restart
+!qepy -->
   IF (embed%tddft%finish) goto 111
   IF (embed%tddft%initial) THEN
+!qepy <--
   ! allocate memory
   call allocate_optical()
 
   ee = i_complex * dt / 2.d0  ! i*dt/2: do not change
   
+!qepy -->
   !evc = cmplx(0.d0,0.d0)
+!qepy <--
   call tddft_cgsolver_initialize(npwx, nbnd_occ_max)
   if (iverbosity > 0) then
     write(stdout,'(5X,''Done with tddft_cgsolver_initialize'')')
@@ -104,38 +114,44 @@ subroutine qepy_molecule_optical_absorption()
         call get_buffer (evc, nwordwfc, iunevcn, ik)
      end do
      
-     !qepy <--
+!qepy -->
      ! replace the iunwfc with iunevcn for sum_band
      iuntemp = iunwfc
      iunwfc = iunevcn
      if (okvan .and. is_allocated_bec_type(becp)) call deallocate_bec_type(becp)
      call sum_band()
-     !qepy -->
      call qepy_update_hamiltonian(-1)
      iunwfc = iuntemp
+!qepy <--
  
      if (iverbosity > 0) write(stdout,'(5X,''Done with restart'')')
+!qepy -->
   else
      embed%tddft%istep = 0
+!qepy <--
   endif
 
 
   if (ehrenfest) then
      call allocate_dyn_vars()
      vel(:,:) = 0.d0
+!qepy -->
      !allocate(if_pos(3,nat)) ! Ehrenfest work around
      !if_pos(:,:) = 1
+!qepy <--
   endif
 
+!qepy -->
   IF (.NOT.ALLOCATED(if_pos)) THEN
   allocate(if_pos(3,nat)) ! Forces
   ENDIF
   if_pos(:,:) = 1
-
+!qepy <--
   if (isave_rho /= 0) call save_rho(0)
 
   ! enter the main TDDFT loop
   wclock = get_clock('TDDFT')
+!qepy -->
   embed%tddft%initial = .FALSE.
   endif ! end IF (embed%tddft%initial)
   do iter = 1, nstep
@@ -143,7 +159,7 @@ subroutine qepy_molecule_optical_absorption()
     istep = embed%tddft%istep
      
     call qepy_update_hamiltonian(istep, embed)
-
+!qepy <--
     ! calculate dipole moment along x, y, and z direction
     call molecule_compute_dipole( charge, dipole )
     !call molecule_compute_quadrupole( quadrupole )
@@ -158,8 +174,10 @@ subroutine qepy_molecule_optical_absorption()
       call g2_kin(ik)
       call init_us_2(npw, igk_k(1,ik), xk(1,ik), vkb)
       
+!qepy -->
       !print*, 'iunit', iunwfc, iunevcn, istep
       if (nks>1 .or. ( l_tddft_restart .and. (istep == 1) ) ) then
+!qepy <--
       ! read wfcs from file and compute becp
       evc = (0.d0, 0.d0)
       if (istep == 1) then
@@ -167,9 +185,12 @@ subroutine qepy_molecule_optical_absorption()
       else
         call get_buffer (evc, nwordwfc, iunevcn, ik)
       endif
+!qepy -->
       endif
+!qepy <--
       if (.not. is_allocated_bec_type(becp)) call allocate_bec_type(nkb, nbnd, becp)
       call calbec( npw, vkb, evc, becp )
+!qepy -->
       if (nks>1) then
       !if ( (istep > 1) .or. (l_tddft_restart .and. (istep == 1)) ) then
       if ( istep > 1 ) then
@@ -177,6 +198,7 @@ subroutine qepy_molecule_optical_absorption()
       endif
       endif
       if ( l_tddft_restart .and. (istep == 1) ) then
+!qepy <--
         call get_buffer (tddft_psi, nwordtdwfc, iuntdwfc, ik)
       endif
 
@@ -228,23 +250,25 @@ subroutine qepy_molecule_optical_absorption()
 #endif
 
     ! update the hamiltonian (recompute charge and potential)
+!qepy -->
     !call qepy_update_hamiltonian(istep, embed)
-    !qepy <--
     ! replace the iunwfc with iunevcn for sum_band
     iuntemp = iunwfc
     iunwfc = iunevcn
     if (okvan .and. is_allocated_bec_type(becp)) call deallocate_bec_type(becp)
     call sum_band()
     iunwfc = iuntemp
-    !qepy -->
+!qepy <--
 
     ! print observables
     if (ionode) then
       do is = 1, nspin
+!qepy -->
         write(stdout,'(''ENERGY '',2X,I6,E24.15,4F16.8)') istep, etot, eband + deband, ehart, etxc+etxcc, ewld
         if (degauss > 0.d0) write(stdout,'(''EFERMI '',F16.8)') ef*rytoev
         write(stdout,'(''CHARGE '',I1,1X,I6,3E24.15)') is, istep, charge(is)
         write(stdout,'(''DIP    '',I1,1X,I6,3E24.15)') is, istep, dipole(:,is)
+!qepy <--
         if (iverbosity > 11) write(stdout,'(''CPUTIME'',F16.6)') get_clock('TDDFT') - wclock
         wclock = get_clock('TDDFT')
         !write(stdout,'(''QUAD   '',I1,1X,I6,9E18.9)') is, istep, quadrupole(:,:,is)
@@ -266,7 +290,7 @@ subroutine qepy_molecule_optical_absorption()
     endif
      
     flush(stdout)
-    !qepy -->
+!qepy -->
     IF (.NOT.ALLOCATED(embed%tddft%dipole)) ALLOCATE(embed%tddft%dipole(3, nspin))
     IF (size(embed%tddft%dipole,2) /= nspin) THEN
        DEALLOCATE(embed%tddft%dipole)
@@ -274,25 +298,29 @@ subroutine qepy_molecule_optical_absorption()
     ENDIF
     embed%tddft%dipole = dipole
     if (embed%tddft%iterative) return
-    !qepy <--
+!qepy <--
      
   enddo      ! end of TDDFT loop
   write(stdout,*)
 
   ! finish  
+!qepy -->
 111 call optical_finalize()
     embed%tddft%initial = .TRUE.
     embed%tddft%finish = .FALSE.
   !call tddft_cgsolver_finalize()
   !call deallocate_optical()
   !if (ehrenfest) call deallocate_dyn_vars() 
+!qepy <--
     
 CONTAINS
+!qepy -->
   SUBROUTINE optical_finalize()
      call tddft_cgsolver_finalize()
      call deallocate_optical()
      if (ehrenfest) call deallocate_dyn_vars() 
   END SUBROUTINE optical_finalize
+!qepy <--
 
   !====================================================================
   ! Print the legend key
@@ -461,4 +489,6 @@ CONTAINS
     RETURN
   end subroutine compute_circular_dichroism
 
+!qepy -->
 END SUBROUTINE qepy_molecule_optical_absorption
+!qepy <--

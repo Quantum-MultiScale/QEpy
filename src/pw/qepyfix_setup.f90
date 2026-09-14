@@ -44,7 +44,7 @@ SUBROUTINE setup()
   USE io_files,           ONLY : xmlfile
   USE cell_base,          ONLY : at, bg, alat, tpiba, tpiba2, ibrav
   USE ions_base,          ONLY : nat, tau, ntyp => nsp, ityp, zv
-  USE basis,              ONLY : starting_pot, natomwfc
+  USE starting_scf,       ONLY : starting_pot
   USE fft_support,        ONLY : good_fft_order
   USE gvect,              ONLY : gcutm, ecutrho
   USE gvecw,              ONLY : gcutw, ecutwfc
@@ -65,12 +65,13 @@ SUBROUTINE setup()
   USE wvfct,              ONLY : nbnd, nbndx
   USE control_flags,      ONLY : tr2, ethr, lscf, lbfgs, lmd, david, lecrpa,  &
                                  isolve, niter, noinv, ts_vdw, tstress, &
-                                 lbands, gamma_only, restart
+                                 lbands, gamma_only, restart, use_spinflip, symm_by_label
+  USE diag_direct,        ONLY : diag_direct_check_compat
   USE cellmd,             ONLY : calc
   USE upf_ions,           ONLY : n_atom_wfc
   USE uspp_param,         ONLY : upf
   USE uspp,               ONLY : okvan
-  USE ldaU,               ONLY : lda_plus_u, init_hubbard
+  USE ldaU,               ONLY : lda_plus_u, init_hubbard, lda_plus_u_kind, orbital_resolved
   USE bp,                 ONLY : gdir, lberry, nppstr, lelfield, lorbm, nx_el,&
                                  nppstr_3d,l3dstring, efield
   USE fixed_occ,          ONLY : f_inp, tfixed_occ, one_atom_occupations
@@ -81,7 +82,7 @@ SUBROUTINE setup()
                                  starting_magnetization
   USE noncollin_module,   ONLY : noncolin, domag, npol, i_cons, m_loc, &
                                  angle1, angle2, bfield, ux, nspin_lsda, &
-                                 nspin_gga, nspin_mag, lspinorb
+                                 nspin_gga, nspin_mag, lspinorb, colin_mag
   USE qexsd_module,       ONLY : qexsd_readschema
   USE qexsd_copy,         ONLY : qexsd_copy_efermi
   USE qes_libs_module,    ONLY : qes_reset
@@ -97,10 +98,17 @@ SUBROUTINE setup()
   USE additional_kpoints, ONLY : add_additional_kpoints
   USE control_flags,      ONLY : sic
   USE sic_mod,            ONLY : init_sic, occ_f2fn, sic_energy
+  USE random_numbers,     ONLY : set_random_seed
+  USE dynamics_module,    ONLY : control_temp
+#if defined (__OSCDFT)
+  USE plugin_flags,       ONLY : use_oscdft
+  USE oscdft_base,        ONLY : oscdft_ctx
+#endif
+
   !
   IMPLICIT NONE
   !
-  INTEGER  :: na, is, ierr, ibnd, ik, nrot_, nbnd_, nr3, nk_ 
+  INTEGER  :: na, is, ierr, ibnd, ik, nrot_, nbnd_, nr3, nk_, natomwfc 
   LOGICAL  :: magnetic_sym, skip_equivalence=.FALSE.
   REAL(DP) :: iocc, ionic_charge, one
   !
@@ -154,6 +162,8 @@ SUBROUTINE setup()
                                'Non-collinear Meta-GGA not implemented', 1 )
      IF ( ANY (upf(1:ntyp)%nlcc) ) CALL infomsg( 'setup ', 'BEWARE:' // &
                & ' nonlinear core correction is not consistent with meta-GGA')
+     IF ( ANY (upf(1:ntyp)%with_metagga_info) ) CALL infomsg( 'setup ', 'BEWARE:' // &
+               & ' meta-GGA information is present')
   END IF
   !
   ! ... Compute the ionic charge for each atom type and the total ionic charge
@@ -218,6 +228,32 @@ SUBROUTINE setup()
   !
   CALL set_spin_vars( lsda, noncolin, domag, &
          npol, nspin, nspin_lsda, nspin_mag, nspin_gga, current_spin )
+  ! set colin_mag.
+  IF (symm_by_label .AND. nspin == 2 .AND. (ANY ( ABS( starting_magnetization(1:ntyp) ) > 1.D-6)) ) THEN 
+    IF (use_spinflip) THEN 
+       colin_mag = 2
+    ELSE 
+       colin_mag = 1 
+    END IF 
+  ELSE IF (symm_by_label) THEN 
+     colin_mag = 0
+  END IF
+  IF ( colin_mag == 2 ) THEN
+     IF ( xclib_dft_is('hybrid') ) THEN
+        CALL infomsg( 'setup', 'colin_mag=2 not implemented for hybrid' )
+        colin_mag = 1
+     ENDIF
+     IF (lda_plus_u .AND. lda_plus_u_kind == 2) THEN
+        CALL infomsg( 'setup', 'colin_mag=2 not implemented for lda+U+V' )
+        colin_mag = 1
+     ENDIF
+#if defined (__OSCDFT)
+     IF (use_oscdft .AND. (oscdft_ctx%inp%oscdft_type==1)) THEN
+        CALL infomsg( 'setup', 'colin_mag=2 not implemented for OSCDFT' )
+        colin_mag = 1
+     ENDIF
+#endif
+  ENDIF
   !
   ! time reversal operation is set up to 0 by default
   t_rev = 0
@@ -254,7 +290,15 @@ SUBROUTINE setup()
         do na=1,nat
            m_loc(1,na) = starting_magnetization(ityp(na))
         end do
-     end if
+     !  set initial magnetization for collinear case
+     ELSE IF ( colin_mag >= 1 ) THEN
+        DO na = 1, nat
+            m_loc(1,na) = 0.0_dp
+            m_loc(2,na) = 0.0_dp
+            m_loc(3,na) = starting_magnetization(ityp(na))
+        END DO
+     ENDIF     
+
      IF ( i_cons /= 0 .AND. nspin==1 ) &
         CALL errore( 'setup', 'this i_cons requires a magnetic calculation ', 1 )
      IF ( i_cons /= 0 .AND. i_cons /= 1 ) &
@@ -266,8 +310,10 @@ SUBROUTINE setup()
   ! ... are transformed into standard pseudopotentials
   !
   IF ( lspinorb ) THEN
-     IF ( ALL ( .NOT. upf(:)%has_so ) ) &
-          CALL infomsg ('setup','At least one non s.o. pseudo')
+     IF ( ALL ( .NOT. upf(:)%has_so ) ) CALL errore ('setup', &
+         'Spin-orbit calculations require at least one spin-orbit pseudo',1)
+     IF ( ANY ( .NOT. upf(:)%has_so ) ) CALL infomsg ('setup', &
+         'Not all pseudopotentials have spin-orbit data')
   ELSE
      CALL average_pp ( ntyp )
   END IF
@@ -353,7 +399,7 @@ SUBROUTINE setup()
         CALL errore( 'setup', 'too few spin dw bands', 1 )
      !
      IF ( nbnd < NINT( nelec ) .AND. lscf .AND. noncolin ) &
-        CALL errore( 'setup', 'too few bands', 1 )
+        CALL errore( 'setup', 'too few bands noncolin case', 1 )
      !
   END IF
   !
@@ -381,7 +427,7 @@ SUBROUTINE setup()
            ! ... do not spoil it with a lousy first diagonalization :
            ! ... set a strict ethr in the input file (diago_thr_init)
            !
-           IF ( lgcscf ) THEN
+           IF ( lgcscf .OR. orbital_resolved ) THEN
               !
               ethr = 1.D-8
               !
@@ -414,15 +460,16 @@ SUBROUTINE setup()
   !
   IF ( .NOT. lscf ) niter = 1
   !
-  ! ... set number of atomic wavefunctions
-  !
-  natomwfc = n_atom_wfc( nat, ityp, noncolin )
   !
   ! ... set the max number of bands used in iterative diagonalization
   !
   nbndx = nbnd
-  IF ( isolve == 0  ) nbndx = david * nbnd 
-  IF (isolve == 4 ) nbndx = 2 *nbnd 
+  IF ( isolve == 0  ) nbndx = david * nbnd
+  IF (isolve == 4 ) nbndx = 2 *nbnd
+  !
+  ! ... Check compatibility for dense H direct diagonalization
+  !
+  IF ( isolve == 5 ) CALL diag_direct_check_compat()
   !
   ! ... Set the units in real and reciprocal space
   !
@@ -503,7 +550,7 @@ SUBROUTINE setup()
      ELSE
         !
         CALL kpoint_grid ( nrot_,time_reversal, skip_equivalence, s, t_rev, bg,&
-                           npk, k1,k2,k3, nk1,nk2,nk3, nkstot, xk, wk)
+                           npk, k1,k2,k3, nk1,nk2,nk3, nkstot, xk, wk )
         !
      END IF
      !
@@ -576,7 +623,7 @@ SUBROUTINE setup()
   !
   IF ( .NOT. lbands ) THEN
      CALL irreducible_BZ (nrot_, s, nsym, time_reversal, &
-                          magnetic_sym, at, bg, npk, nkstot, xk, wk, t_rev)
+                          magnetic_sym, at, bg, npk, nkstot, xk, wk, t_rev )
   ELSE
      one = SUM (wk(1:nkstot))
      IF ( one > 0.0_dp ) wk(1:nkstot) = wk(1:nkstot) / one
@@ -638,6 +685,7 @@ SUBROUTINE setup()
   IF ( nkstot > npk ) CALL errore( 'setup', 'too many k points', nkstot )
   !
   IF (one_atom_occupations) THEN
+     natomwfc = n_atom_wfc( nat, ityp, noncolin )
      DO ik=1,nkstot
         DO ibnd=natomwfc+1, nbnd
            IF (f_inp(ibnd,ik)> 0.0_DP) CALL errore('setup', &
@@ -675,14 +723,18 @@ SUBROUTINE setup()
   ! ... checks and initializations to be performed after parallelization setup
   !
   IF ( lberry .OR. lelfield .OR. lorbm ) THEN
-     IF ( npool > 1 ) CALL errore( 'iosys', &
+     IF ( npool > 1 ) CALL errore( 'setup', &
           'Berry Phase/electric fields not implemented with pools', 1 )
   END IF
+  IF ( gamma_only .AND. nkstot == 1 .AND. npool > 1 ) CALL errore( 'setup', &
+          'Gamma-only calculations not allowed with pools', 1 )
   IF ( xclib_dft_is('hybrid') ) THEN
      IF ( nks == 0 ) CALL errore('setup','pools with no k-points' &
           & // ' not allowed for hybrid functionals',1)
      IF ( tstress .and. npool > 1 )  CALL errore('setup', &
          'stress for hybrid functionals not available with pools', 1)
+     !!!IF ( tstress )  CALL errore('setup', &
+     !!!    'stress for hybrid functionals not available', 1)
      !
      CALL setup_exx  ()
      !
@@ -699,7 +751,10 @@ SUBROUTINE setup()
      IF (sic_energy) CALL occ_f2fn()
   END IF
   !
-  RETURN
+  ! ... next command prevents different MD runs to start
+  ! ... with exactly the same "random" velocities
+  !
+  IF (lmd.AND.control_temp) CALL set_random_seed( )
   !
 END SUBROUTINE setup
 !
@@ -721,10 +776,9 @@ SUBROUTINE setup_para ( nr3, nkstot, nbnd )
   USE command_line_options, ONLY : npool_, ndiag_, nband_, ntg_, nyfft_, &
           nmany_, pencil_decomposition_
   !
-  !qepy fix --> import
+!qepy -->
   USE laxlib_processors_grid, ONLY : lax_is_initialized
-  !qepy fix <-- import
-  !
+!qepy <--
   IMPLICIT NONE
   !
   INTEGER, INTENT(in) :: nr3
@@ -737,11 +791,11 @@ SUBROUTINE setup_para ( nr3, nkstot, nbnd )
   !
   ! do not execute twice: unpredictable results may follow
   !
-  !qepy fix --> check first
+!qepy -->
   !IF ( .NOT.first ) RETURN
   !first = .false.
   IF ( lax_is_initialized ) RETURN
-  !qepy fix <-- check first
+!qepy <--
   !
   ! GPUs (not sure it serves any purpose)
   !

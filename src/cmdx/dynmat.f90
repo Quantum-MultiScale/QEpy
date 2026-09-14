@@ -78,13 +78,13 @@ SUBROUTINE dynmat()
                          read_dyn_mat, read_dyn_mat_tail
   USE constants,   ONLY : amu_ry
   USE dynamical,  ONLY : dyn, m_loc, ityp, tau, zstar, dchi_dtau  
-  USE rigid,       ONLY : dyndiag, nonanal
+  USE rigid,       ONLY : dyndiag, nonanal, remove_dyn_interaction
   !
   implicit none
   !
   integer, parameter :: ntypx = 10
   character(len=256):: fildyn, filout, filmol, filxsf, fileig
-  character(len=3) :: atm(ntypx)
+  character(len=6) :: atm(ntypx)
   character(len=10) :: asr
   logical :: lread, gamma, loto_2d
   complex(DP), allocatable :: z(:,:)
@@ -134,6 +134,7 @@ SUBROUTINE dynmat()
   CALL mp_bcast(fileig,ionode_id, world_comm)
   CALL mp_bcast(filxsf,ionode_id, world_comm)
   CALL mp_bcast(q,ionode_id, world_comm)
+  CALL mp_bcast(remove_interaction_blocks, ionode_id, world_comm)
   !
   IF (ionode) inquire(file=fildyn,exist=lread)
   CALL mp_bcast(lread, ionode_id, world_comm)
@@ -178,7 +179,7 @@ SUBROUTINE dynmat()
         END DO
      END IF
   ENDIF
-  IF (remove_interaction_blocks)  CALL remove_interaction(dyn, nat) 
+  IF (remove_interaction_blocks)  CALL remove_dyn_interaction(dyn, nat) 
   !
   IF (ionode) THEN
      !
@@ -234,34 +235,12 @@ SUBROUTINE dynmat()
      DEALLOCATE (dyn)
   ENDIF
   !
-  CALL environment_end('DYNMAT')
+  CALL environment_end( )
   !
   CALL mp_global_end()
   !
-  CONTAINS 
-    subroutine remove_interaction(d,na_) 
-      !! this routine removes from the dynamical matrix the columsn and the rows 
-      !! for the atoms with vanishing diagonal blocks (i,j,ia,ia) 
-      IMPLICIT NONE 
-      INTEGER,INTENT(IN)      :: na_
-      COMPLEX(DP), INTENT(INOUT)  :: d(3,3,na_,na_)
-      REAL(DP)                :: norm 
-      ! 
-      INTEGER ia, ipol, jpol  
-      COMPLEX(dp) :: z(3,3) 
-      DO ia = 1, na_ 
-        norm = 0._dp 
-        z = d(:,:,ia,ia) 
-        DO ipol =1, 3
-          norm = norm + REAL(z(ipol,ipol))**2  + AIMAG(z(ipol,ipol))**2   
-          DO jpol =ipol+1, 3
-             norm = norm + 2._DP * REAL(z(ipol,jpol))**2  + AIMAG(z(ipol,jpol))**2
-          END DO 
-        END DO 
-        IF (norm .lt. 1.e-8_DP ) THEN 
-          d(:,:,ia,:) = 0._DP 
-          d(:,:,:,ia)  =  0._DP 
-        END IF 
-      END DO  
-   END SUBROUTINE remove_interaction  
+CONTAINS
+!
+
+
 END SUBROUTINE dynmat

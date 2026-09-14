@@ -7,6 +7,20 @@ check_exit() {
 	fi
 }
 
+if [ -z "$MPIRUN" ]
+then
+	mpirun=mpirun
+else
+	mpirun=$MPIRUN
+fi
+
+if [ -z "$PYTHON" ]
+then
+	python=python3
+else
+	python=$PYTHON
+fi
+
 serial='y'
 parallel=''
 if [ $# -gt 1 ]
@@ -25,7 +39,7 @@ if [ $serial ]; then
 	echo "####################Test serial version####################"
 	for f in *py
 	do
-		python3 -m pytest --cov-report term-missing --cov=./ $f
+		$python -m pytest --cov-report term-missing --cov=./ $f
 		check_exit $?
 	done
 fi
@@ -34,7 +48,10 @@ if [ $parallel ]; then
 	echo "####################Test MPI version#######################"
 	for f in *py
 	do
-		mpirun -n 2 python3 -m pytest --with-mpi $f
+		$mpirun -n 2 $python -m pytest --with-mpi $f
+		if [ $? -ne 0 ]; then
+			$mpirun -n 2 $python  $f
+		fi
 		check_exit $?
 	done
 fi

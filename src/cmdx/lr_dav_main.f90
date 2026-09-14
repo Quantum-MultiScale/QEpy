@@ -20,7 +20,7 @@ SUBROUTINE lr_dav_main()
   USE lr_variables,          ONLY : restart, restart_step,&
        evc1,n_ipol, d0psi, &
        no_hxc, nbnd_total, &
-       revc0, lr_io_level, code1,davidson
+       lr_io_level, davidson
   USE ions_base,             ONLY : tau,nat,atm,ityp
   USE environment,           ONLY : environment_start
   USE mp_global,             ONLY : nimage, mp_startup, inter_bgrp_comm, &
@@ -32,7 +32,6 @@ SUBROUTINE lr_dav_main()
   USE xc_lib,                ONLY : xclib_dft_is
   use lr_dav_routines
   use lr_dav_variables
-  use lr_dav_debug
   !
 #if defined (__ENVIRON)
   USE plugin_flags,          ONLY : use_environ
@@ -46,7 +45,6 @@ SUBROUTINE lr_dav_main()
   LOGICAL, EXTERNAL  :: check_gpu_support
 
   use_gpu = check_gpu_support()
-  if(use_gpu) Call errore('lr_dav_main', 'turbo_davidson with GPU NYI', 1)
 
 #if defined(__MPI)
   CALL mp_startup ( )
@@ -56,7 +54,7 @@ SUBROUTINE lr_dav_main()
   !
   davidson = .true.
   !
-  CALL environment_start ( code1 )
+  CALL environment_start ( 'turboTDDFT' )
   CALL start_clock('lr_dav_main')
 
   !   Reading input file and PWSCF xml, some initialisation
@@ -100,7 +98,6 @@ SUBROUTINE lr_dav_main()
   if (precondition) write(stdout,'(/5x,"Precondition is used in the algorithm,")')
   do while (.not. dav_conv .and. dav_iter .lt. max_iter)
     dav_iter=dav_iter+1
-      if(if_check_orth) call check_orth()
       ! In one david step, M_C,M_D and M_CD are first constructed;then will be
         ! solved rigorously; then the solution in the subspace left_sub() will
         ! be transformed into full space left_full()
@@ -111,18 +108,21 @@ SUBROUTINE lr_dav_main()
       ! Check to see if the wall time limit has been exceeded.
       if ( check_stop_now() ) then
          call lr_write_restart_dav() 
-         goto 100
+         exit
       endif
       !
   enddo
-  ! call check_hermitian()
+  if ( .not. dav_conv .and. dav_iter == max_iter) then
+     call lr_write_restart_dav()
+     write(stdout,'(/7x,"================================================================")')
+     write(stdout,'(/7x,"Davidson diagonalization has NOT converged in",I5," steps.")') dav_iter
+     write(stdout,'(/7x,"================================================================")')
+     goto 100
+  endif        
+
   ! Extract physical meaning from the solution
-  
+  if ( check_stop_now() ) goto 100
   call interpret_eign('END')
-  ! The check_orth at the end may take quite a lot of time in the case of 
-  ! USPP because we didn't store the S* vector basis. Turn this step on only
-  ! in cases of debugging
-  ! call check_orth() 
   if(lplot_drho) call plot_drho()
 
 100 continue

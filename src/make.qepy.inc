@@ -8,7 +8,7 @@
 
 default: all
 
-BUILDDIR = $(dir $(abspath $(filter %make.qepy.inc,$(MAKEFILE_LIST))))
+PYBUILDDIR = $(dir $(abspath $(filter %make.qepy.inc,$(MAKEFILE_LIST))))
 SRC_DIR  = ./
 
 QEDIR = $(or ${qedir}, ../../../)
@@ -38,7 +38,7 @@ endif
 
 
 FPP = ${F90} -E -cpp $(F2FLAGS)
-F2PY = CFLAGS='$(CFLAGS)' ${PYTHON} ${BUILDDIR}/f90wrap2py.py \
+F2PY = CFLAGS='$(CFLAGS)' ${PYTHON} ${PYBUILDDIR}/f90wrap2py.py \
 				--fcompiler=$(FCOMPILER) --build-dir . \
 				-c --f90exec=$(MPIF90) --f77exec=$(MPIF90) \
 				--f90flags='${F2FLAGS}'
@@ -65,17 +65,17 @@ MODS_PW = -lqepy_pw -lqepy_ks_solvers -lqepy_dft_d3 $(MODS_BASE)
 
 MODS_LR = -lqepy_lr_modules $(MODS_PW)
 
-INCS_MODS_BASE = -I${BUILDDIR}/modules \
--I${BUILDDIR}/upflib \
--I${BUILDDIR}/xclib \
--I${BUILDDIR}/fftxlib \
--I${BUILDDIR}/laxlib \
--I${BUILDDIR}/utilxlib \
--I${BUILDDIR}/mbd
+INCS_MODS_BASE = -I${PYBUILDDIR}/modules \
+-I${PYBUILDDIR}/upflib \
+-I${PYBUILDDIR}/xclib \
+-I${PYBUILDDIR}/fftxlib \
+-I${PYBUILDDIR}/laxlib \
+-I${PYBUILDDIR}/utilxlib \
+-I${PYBUILDDIR}/mbd
 
-INCS_MODS_PW = -I${BUILDDIR}/pw -I${BUILDDIR}/ks_solvers -I${BUILDDIR}/dft_d3 $(INCS_MODS_BASE)
+INCS_MODS_PW = -I${PYBUILDDIR}/pw -I${PYBUILDDIR}/ks_solvers -I${PYBUILDDIR}/dft_d3 $(INCS_MODS_BASE)
 
-INCS_MODS_LR = -I${BUILDDIR}/lr_modules $(INCS_MODS_PW)
+INCS_MODS_LR = -I${PYBUILDDIR}/lr_modules $(INCS_MODS_PW)
 
 INCS_MODS_BASE_QE = -I$(QEDIR)/upflib \
                -I$(QEDIR)/XClib \
@@ -90,12 +90,13 @@ INCS_MODS_PW_QE = -I$(QEDIR)/PW/src -I$(QEDIR)/KS_Solvers -I$(QEDIR)/dft-d3 $(IN
 
 INCS_MODS_LR_QE = -I$(QEDIR)/LR_Modules $(INCS_MODS_PW_QE)
 
-QEPYSRC = ${BUILDDIR}/fix/ ${BUILDDIR}/cmdx/ $(SRC_DIR) ${PLUGIN_DIR}
+QEPYSRC = ${PYBUILDDIR}/fix/ ${PYBUILDDIR}/cmdx/ $(SRC_DIR) ${PLUGIN_DIR}
 
 vpath %.f90 ${QEPYSRC} $(QEDIR)/$(QESRC_DIR)
 
 QEPY_OBJS_NEW = ${QEPY_OBJS} ${QEPY_FIX_OBJS} ${QEPY_PROG_OBJS}
-LIB_OBJS = $(addprefix $(QEDIR)/$(QESRC_DIR)/, $(filter-out ${QEPY_OBJS_NEW}, ${LIB_OBJS_TEMP}))
+QEPY_OBJS_FIX = $(patsubst qepyfix_%,%,${QEPY_FIX_OBJS})
+LIB_OBJS = $(addprefix $(QEDIR)/$(QESRC_DIR)/, $(filter-out ${QEPY_OBJS_FIX}, $(filter-out ${QEPY_OBJS_NEW}, ${LIB_OBJS_TEMP})))
 
 WRAP_OBJS = $(QE_OBJS) $(QEPY_OBJS_NEW)
 WRAP_FPP_FILES = $(WRAP_OBJS:%.o=%.fpp)
@@ -143,7 +144,8 @@ build : lib$(PNAME).so
 endif
 
 ${PNAME} : ${WRAP_FPP_FILES}
-	@${PYTHON} -m f90wrap --f90wrap -m ${PNAME} --f90-mod-name lib${PNAME} ${WRAP_FPP_FILES} ${CROSS_FPP_FILES} -k $(BUILDDIR)/kind_map.json -P
+	@${PYTHON} -m f90wrap --f90wrap -m ${PNAME} --f90-mod-name lib${PNAME} ${WRAP_FPP_FILES} ${CROSS_FPP_FILES} \
+	    -k $(PYBUILDDIR)/kind_map.json -P --skip-types ${SKIPTYPES}
 
 meson.clean:
 	@-rm -f meson*
@@ -153,13 +155,13 @@ clean : meson.clean
 	@-rm -f ${F90WRAP_FILES} ${WRAP_FPP_FILES}
 	@-rm -f *.o *.mod
 	@-rm -rf src.* .libs .f2py_f2cmap lib${PNAME}*
-	@-rm -rf ${PNAME} ${BUILDDIR}/${PNAME} ${BUILDDIR}/lib${PNAME}.*
+	@-rm -rf ${PNAME} ${PYBUILDDIR}/${PNAME} ${PYBUILDDIR}/lib${PNAME}.*
 
 all : build
-	${PYTHON} ${BUILDDIR}/fix_init_.py $(PNAME)/__init__.py
+	${PYTHON} ${PYBUILDDIR}/fix_init_.py $(PNAME)/__init__.py
 	@if test '${UNAME}' = 'Darwin'; then \
 		install_name_tool -id '@loader_path/lib${PNAME}.so' lib${PNAME}.so; \
 	fi
-	cp lib$(PNAME).so ${BUILDDIR}/
-	if test -d $(PNAME); then cp -r $(PNAME) ${BUILDDIR}/; fi
-	if test -f ${CONFIG}; then cp ${CONFIG} ${BUILDDIR}/; fi
+	cp lib$(PNAME).so ${PYBUILDDIR}/
+	if test -d $(PNAME); then cp -r $(PNAME) ${PYBUILDDIR}/; fi
+	if test -f ${CONFIG}; then cp ${CONFIG} ${PYBUILDDIR}/; fi

@@ -1,0 +1,2 @@
+./qepy_lr_dav_main.f90 : ~/q-e-qe-7.6/TDDFPT/src/lr_dav_main.f90
+./qepyfix_lr_dav_routines.f90 : ~/q-e-qe-7.6/TDDFPT/src/lr_dav_routines.f90

@@ -6,25 +6,23 @@
 ! or http://www.gnu.org/copyleft/gpl.txt .
 !
 !----------------------------------------------------------------------------
+!qepy -->
 SUBROUTINE qepy_stop_run( exit_status, print_flag, what, finalize )
+!qepy <--
   !----------------------------------------------------------------------------
-  !! Close all files and synchronize processes before stopping:
+  !! Close all files and synchronize processes before stopping. 
+  !! Remove temporary files needed for restart only if exit_status = 0
+  !! (successful execution)
   !
-  !! * exit_status = 0: successfull execution, remove temporary files;
-  !! * exit_status =-1: code stopped by user request;
-  !! * exit_status = 1: convergence not achieved.
-  !
-  !! Do not remove temporary files needed for restart.
-  !
-  !qepy --> 
+!qepy -->
   ! Also add some from pwscf and run_pwscf
   ! Merge and modify the mp_global.mp_global_end
-  !qepy <-- 
-  USE io_global,          ONLY : stdout, ionode
+  USE io_global,          ONLY : ionode, stdout
+!qepy <--
   USE mp_global,          ONLY : mp_global_end
   USE environment,        ONLY : environment_end
   USE io_files,           ONLY : iuntmp, seqopn
-  !qepy --> more import
+!qepy -->
   USE qmmm,               ONLY : qmmm_shutdown
   USE qexsd_module,       ONLY : qexsd_set_status
   USE mp,                 ONLY : mp_comm_free, mp_barrier, mp_start, mp_end, mp_stop, mp_count_nodes
@@ -37,13 +35,14 @@ SUBROUTINE qepy_stop_run( exit_status, print_flag, what, finalize )
   USE laxlib_processors_grid,            ONLY : ortho_comm
   USE control_flags,      ONLY : lensemb
   USE beef,               ONLY : beef_energies
-  !qepy <-- more import
+!qepy <--
   !
   IMPLICIT NONE
   !
   INTEGER, INTENT(IN) :: exit_status
   LOGICAL             :: exst, opnd, lflag
   !
+!qepy -->
   INTEGER, INTENT(IN), OPTIONAL :: print_flag
   CHARACTER(LEN=*), INTENT(IN), OPTIONAL :: what
   LOGICAL, OPTIONAL   :: finalize
@@ -51,14 +50,10 @@ SUBROUTINE qepy_stop_run( exit_status, print_flag, what, finalize )
   INTEGER             :: iprint = 0
   INTEGER :: ierr
   !
-  !qepy --> run_pwscf
   CALL qexsd_set_status( exit_status )
   IF ( lensemb ) CALL beef_energies( )
   CALL qmmm_shutdown()
-  !qepy <-- run_pwscf
-  !qepy --> pwscf
   if ( ortho_comm  /= 0 .and. ortho_comm  /= world_comm ) CALL laxlib_end()
-  !qepy <-- pwscf
   !
   IF ( PRESENT(what)) THEN
      IF (len_trim(what)>1) what_= trim(what)
@@ -75,6 +70,7 @@ SUBROUTINE qepy_stop_run( exit_status, print_flag, what, finalize )
   ENDIF
 
 
+!qepy <--
   lflag = ( exit_status == 0 ) 
   IF ( lflag ) THEN
      ! 
@@ -94,19 +90,27 @@ SUBROUTINE qepy_stop_run( exit_status, print_flag, what, finalize )
   !
   CALL close_files( lflag )
   !
+!qepy -->
   IF ( iprint > 0 .and. iprint<10 ) THEN
+!qepy <--
   CALL print_clock_pw()
+!qepy -->
   ENDIF
+!qepy <--
   !
   CALL clean_pw( .TRUE. )
   !
+!qepy -->
   IF ( iprint > 0 .and. iprint<10 ) THEN
-  CALL environment_end( 'PWSCF' )
+!qepy <--
+  CALL environment_end( )
+!qepy -->
   ENDIF
+!qepy <--
   !
+!qepy -->
   !CALL mp_global_end()
   !-----------------------------------------------------------------------
-  !qepy --> add mp_global_end
   if ( intra_egrp_comm  /= 0 .and. intra_egrp_comm  /= world_comm ) then
      CALL mp_comm_free ( intra_egrp_comm )
      intra_egrp_comm = 0
@@ -150,61 +154,70 @@ SUBROUTINE qepy_stop_run( exit_status, print_flag, what, finalize )
      ENDIF
   END IF
 #endif
-  !qepy <-- add mp_global_end
   !-----------------------------------------------------------------------
+!qepy <--
   !
+!qepy -->
 END SUBROUTINE qepy_stop_run
+!qepy <--
 !
 !-----------------------------------------
+!qepy -->
 !SUBROUTINE do_stop( exit_status )
-  !!---------------------------------------
-  !!! Stop the run.
-  !!
-  !IMPLICIT NONE
-  !!
-  !INTEGER, INTENT(IN) :: exit_status
-  !!
-  !IF ( exit_status == -1 ) THEN
-     !! -1 is not an acceptable value for stop in fortran;
-     !! convert it to 255
-     !STOP 255
-  !ELSEIF ( exit_status == 0 ) THEN
-     !STOP
-  !ELSEIF ( exit_status == 1 ) THEN
-     !STOP 1
-  !ELSEIF ( exit_status == 2 ) THEN
-     !STOP 2
-  !ELSEIF ( exit_status == 3 ) THEN
-     !STOP 3
-  !ELSEIF ( exit_status == 4 ) THEN
-     !STOP 4
-  !ELSEIF ( exit_status == 130) THEN
-     !STOP
-  !ELSEIF ( exit_status == 131) THEN
-     !STOP
-  !ELSEIF ( exit_status == 255 ) THEN
-     !STOP 255
-  !ELSEIF ( exit_status == 254 ) THEN
-     !STOP 254
-  !ELSE
-     !! unimplemented value
-     !STOP 128
-  !ENDIF
-  !!
+!  !---------------------------------------
+!  !! Stop the run. Exit status is returned to the shell only if
+!  !! preprocessing flag __RETURN_EXIT_STATUS is set (default: no).
+!  !
+!  IMPLICIT NONE
+!  !
+!  INTEGER, INTENT(IN) :: exit_status
+!  !
+!#if ! defined(__RETURN_EXIT_STATUS)
+!  STOP
+!#else
+!  IF ( exit_status == -1 ) THEN
+!     ! -1 is not an acceptable value for stop in fortran;
+!     ! convert it to 255
+!     STOP 255
+!  ELSEIF ( exit_status == 0 ) THEN
+!     STOP
+!  ELSEIF ( exit_status == 1 ) THEN
+!     STOP 1
+!  ELSEIF ( exit_status == 2 ) THEN
+!     STOP 2
+!  ELSEIF ( exit_status == 3 ) THEN
+!     STOP 3
+!  ELSEIF ( exit_status == 4 ) THEN
+!     STOP 4
+!  ELSEIF ( exit_status == 130) THEN
+!     STOP
+!  ELSEIF ( exit_status == 131) THEN
+!     STOP
+!  ELSEIF ( exit_status == 255 ) THEN
+!     STOP 255
+!  ELSEIF ( exit_status == 254 ) THEN
+!     STOP 254
+!  ELSE
+!     ! unimplemented value
+!     STOP 128
+!  ENDIF
+!#endif
+!  !
 !END SUBROUTINE do_stop
 !!
 !!----------------------------------------------------------------------------
 !SUBROUTINE closefile()
-  !!----------------------------------------------------------------------------
-  !!! Close all files and synchronize processes before stopping.  
-  !!! Called by "sigcatch" when it receives a signal.
-  !!
-  !USE io_global,  ONLY :  stdout
-  !!
-  !WRITE( stdout,'(5X,"Signal Received, stopping ... ")')
-  !!
-  !CALL stop_run( 255 )
-  !!
-  !RETURN
-  !!
+!  !----------------------------------------------------------------------------
+!  !! Close all files and synchronize processes before stopping.  
+!  !! Called by "sigcatch" when it receives a signal.
+!  !
+!  USE io_global,  ONLY :  stdout
+!  !
+!  WRITE( stdout,'(5X,"Signal Received, stopping ... ")')
+!  !
+!  CALL stop_run( 255 )
+!  !
+!  RETURN
+!  !
 !END SUBROUTINE closefile
+!qepy <--
