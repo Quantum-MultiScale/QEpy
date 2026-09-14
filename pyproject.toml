@@ -3,9 +3,8 @@ requires = [
 	'meson>=1.4.0',
 	'ninja>=1.8.2, !=1.13.0',
 	'wheel',
+	"numpy>=2.0.0, <2.5.0; python_version>='3.9'",
 	'f90wrap<=0.2.16', # 0.3.0 has the 'only' problem
-	'oldest-supported-numpy; python_version=="3.8"',
-	"numpy>=2.0.0; python_version>='3.9'",
 	'setuptools>=61.0',
 	#"meson-python>=0.13.0",
 	#'f90wrap@git+https://github.com/jameskermode/f90wrap',
@@ -25,7 +24,7 @@ maintainers = [
 	{name = "Michele Pavanello",  email = "m.pavanello@rutgers.edu"},
 	{name = "Xuecheng Shao",      email = "shaoxc@jlu.edu.cn"},
 ]
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 dependencies = [
 	'f90wrap<=0.2.16',
 	"numpy>=1.19.3",
@@ -90,6 +89,11 @@ before-build = "bash {project}/tools/wheels/cibw_before_build.sh {project}"
 [tool.cibuildwheel.linux]
 manylinux-x86_64-image = "manylinux2014"
 manylinux-aarch64-image = "manylinux2014"
+
+#[[tool.cibuildwheel.overrides]]
+#select = "cp3{13,14,15}-manylinux_*"
+#manylinux-x86_64-image = "manylinux_2_28"
+#manylinux-aarch64-image = "manylinux_2_28"
 
 [tool.cibuildwheel.linux.environment]
 RUNNER_OS="Linux"

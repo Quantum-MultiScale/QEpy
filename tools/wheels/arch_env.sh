@@ -25,6 +25,12 @@ elif [[ "$OS_NAME" == "Darwin" ]]; then
     fi
 fi
 
+if [[ "$OS_NAME" == "Linux"  ]]; then
+    BUILD_CONSTRAINT="/project/tools/wheels/build-constraints.txt"
+else
+    BUILD_CONSTRAINT="${PWD}/tools/wheels/build-constraints.txt"
+fi
+
 echo "=== QEpy environment loaded (OS: $OS_NAME, Arch: $TARGET_ARCH) ==="
 
 if [[ "$GITHUB_ACTIONS" == "true" ]]; then
@@ -81,6 +87,8 @@ if [[ "$GITHUB_ACTIONS" == "true" ]]; then
         CIBW_ENV+=" LIBMBD_C_API=${LIBMBD_C_API}"
         CIBW_ENV+=" tddft=${tddft}"
         CIBW_ENV+=" FFLAGS='${FFLAGS}'"
+
+	CIBW_ENV+=" PIP_BUILD_CONSTRAINT=${BUILD_CONSTRAINT}"
         echo "$CIBW_ENV" >> "$GITHUB_ENV"
     fi
 fi

@@ -26,10 +26,10 @@ class MakeBuild(build_ext):
 
         try:
             import multiprocessing as mp
-            nprocs = max(mp.cpu_count()//2, 2)
+            nprocs = max(mp.cpu_count(), 2)
         except ImportError:
             nprocs = 4
-        build_args += ' -j ' + str(nprocs)
+        # build_args += ' -j ' + str(nprocs)
 
         if env.get('qepydev', 'no').lower() == 'yes' :
             print("Keep the previous compiled files", flush = True)
@@ -78,7 +78,7 @@ class MakeBuild(build_ext):
 
             env['qedir'] = os.path.abspath(qedir)
 
-        res = subprocess.run('make all ' + build_args, cwd=self.build_temp, env = env, shell=True, capture_output=True, text=True)
+        res = subprocess.run('make all ', cwd=self.build_temp, env = env, shell=True, capture_output=True, text=True)
         if res.returncode > 0 :
             print("stdout:", res.stdout, flush=True)
             print("stderr:", res.stderr, flush=True)
