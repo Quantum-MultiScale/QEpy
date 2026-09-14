@@ -513,7 +513,7 @@ class Driver(metaclass=QEpyLibs):
                 self.embed.finish = True
                 self.qepy_pw.qepy_electrons_scf(0, 0)
 
-    def stop(self, exit_status = 0, what = 'all', print_flag = 0, **kwargs):
+    def stop(self, exit_status = 0, what = 'all', print_flag = 0, finalize=False, **kwargs):
         """Stop the driver. This must be done anytime a new driver is created.
         This method is invoked automatically if a running driver is detected. Only
         one driver can run at any given time.
@@ -535,7 +535,7 @@ class Driver(metaclass=QEpyLibs):
             self.phonon_stop(**kwargs)
         else :
             if not self.embed.initial : self.end_scf()
-            self.qepy_pw.qepy_stop_run(exit_status, print_flag = print_flag, what = what, finalize = False)
+            self.qepy_pw.qepy_stop_run(exit_status, print_flag = print_flag, what = what, finalize = finalize)
 
         if hasattr(self.fileobj, 'close'): self.fileobj.close()
         qepy_clean_saved()
